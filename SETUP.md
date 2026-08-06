@@ -132,3 +132,61 @@ Deploys after that are just `git push` — Render and Vercel rebuild on their ow
   floating WhatsApp button.
 - `RESEND_API_KEY` (server/.env): real emails; without it they're logged to the
   server console instead.
+
+## Production hardening — what's built in, what the platform does
+
+### Security & data protection ("RLS")
+
+Row-Level Security is a Postgres feature; this stack enforces the same
+guarantee in the API layer, which is where it belongs for MongoDB:
+
+- Every protected route: Firebase token → Mongo user → role check
+  (`protect`/`authorize`), then **object-level ownership checks** — an owner
+  can only touch *their* car/booking, a customer only *their* booking.
+- Mongo operator injection is refused globally (`sanitizeFilter`), request
+  bodies are capped at 1 MB, `helmet` sets the security headers, CORS is
+  locked to `CLIENT_URL` in production, and stack traces never leave the
+  server outside development.
+- Secrets live only in env vars; card details never touch the server at all
+  (Paystack hosted checkout). Firewalling the database: in Atlas, restrict
+  Network Access to Render's outbound IPs instead of 0.0.0.0/0.
+
+### Rate limiting
+
+Per-IP, sliding 15-minute windows, HTTP 429 with standard RateLimit headers:
+300 requests on `/api/*`, 30 on `/api/auth/*` and `/api/payments/*`.
+`trust proxy` is set so limits track real visitor IPs behind Render. The
+store is in-memory — when you scale past one instance, move it to Redis.
+
+### Caching & CDN
+
+- Frontend: Vercel's CDN serves the static build worldwide; hashed assets
+  ship with `immutable` cache headers (vercel.json).
+- API: public catalogue reads (`GET /api/cars*`, reviews) send
+  `Cache-Control: public, max-age=30, stale-while-revalidate=120` — burst
+  protection without stale availability. Authed routes are never cached.
+- Optional Cloudflare: move the domain's nameservers to Cloudflare (free),
+  proxy `www`/apex and `api` — you get a global CDN in front of both hosts,
+  DDoS protection and their WAF. The API cache headers above mean Cloudflare
+  automatically absorbs catalogue traffic.
+
+### Load balancing & scaling
+
+The API is stateless by design — auth is a Firebase token per request, no
+server-side sessions — so it scales horizontally with zero code changes:
+Render Starter → increase instance count, Render balances traffic itself.
+The database scales separately on Atlas (M0 → M10 is a slider, plus its own
+connection pooling). The two things to revisit past one instance: the rate
+limiter store (Redis) and log aggregation.
+
+### Error tracking & logs
+
+- Every API failure logs one structured JSON line (time, level, status,
+  method, path, ip, user, message; stacks on 5xx) — searchable directly in
+  Render → Logs, and ingestible by any collector (Logtail, Datadog).
+- Unhandled rejections are logged; uncaught exceptions log then exit so the
+  platform restarts a clean process. `/api/health` reports database + auth
+  state and is Render's health check, so a dead process is replaced.
+- When you want alerting + client-side crash reports, add Sentry: free tier,
+  `@sentry/node` on the API and `@sentry/react` in the client, initialised
+  only when `SENTRY_DSN` is set.
