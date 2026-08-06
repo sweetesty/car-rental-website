@@ -75,6 +75,14 @@ interface DataValue {
 // eslint-disable-next-line react-refresh/only-export-components
 export const DataContext = createContext<DataValue>(null as unknown as DataValue)
 
+/**
+ * The seed-data fallback is a dev/preview convenience. On a deployed site a
+ * slow or crashed API must NOT quietly serve fake, bookable cars to real
+ * visitors — production shows a reconnecting state and retries instead.
+ * Set VITE_DEMO_FALLBACK=1 to keep the fallback in a hosted preview build.
+ */
+const ALLOW_DEMO = import.meta.env.DEV || import.meta.env.VITE_DEMO_FALLBACK === '1'
+
 /** Merges by id, letting the later (richer) record win. */
 function mergeById<T extends { id: string }>(...lists: T[][]): T[] {
   const map = new Map<string, T>()
@@ -144,14 +152,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       const [pub, mine, allCars, ownBookings, allBookings, allUsers, stats] = results
 
-      // The public listing is the canary. If it fails for ANY reason the site has
-      // nothing to show, so the seed dataset takes over — a 500 from a server
-      // that's up but can't reach Mongo leaves the user just as stranded as a
-      // refused connection.
+      // The public listing is the canary. If it fails, dev builds fall back to
+      // the seed dataset; production keeps the store empty, surfaces a
+      // reconnecting banner, and retries — real visitors must never browse
+      // fake, bookable cars because the API had a cold start.
       if (pub.status === 'rejected') {
         setError(apiError(pub.reason))
-        loadDemo()
-        return
+        if (ALLOW_DEMO) {
+          loadDemo()
+          return
+        }
+        setDemo(false)
+        setPublicCars([])
       } else {
         setDemo(false)
         setDemoTransactions([])
@@ -185,6 +197,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (authLoading) return
     load()
   }, [authLoading, load])
+
+  // Production self-heal: while the API is unreachable (Render cold start,
+  // deploy in flight), retry every 15s until it answers.
+  useEffect(() => {
+    if (demo || !error || loading) return
+    const id = setTimeout(load, 15_000)
+    return () => clearTimeout(id)
+  }, [demo, error, loading, load])
 
   const cars = useMemo(
     () => withBookedDates(mergeById(publicCars, scopedCars), bookings),

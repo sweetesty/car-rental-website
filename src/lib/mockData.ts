@@ -629,6 +629,7 @@ export const cars: Car[] = [
       avatarUrl: o.avatarUrl,
       verification: o.verification,
       createdAt: o.createdAt,
+      phone: o.phone,
     }
   })(),
 })) as Car[]

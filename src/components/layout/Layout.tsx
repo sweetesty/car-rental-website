@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './Header'
 import { Footer } from './Footer'
+import { WhatsAppFloat } from './WhatsAppFloat'
 
 /** Shell for every public page. Also resets scroll on navigation. */
 export function Layout() {
@@ -24,6 +25,7 @@ export function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <WhatsAppFloat />
     </div>
   )
 }

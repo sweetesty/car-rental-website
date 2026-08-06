@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   motion,
+  useAnimationControls,
   useInView,
   useMotionValue,
   useReducedMotion,
@@ -63,18 +64,51 @@ export function RisingWords({
   )
 }
 
-/** A hand-drawn-feeling accent stroke that sweeps under a word. */
+/**
+ * Accent stroke that sweeps under a word — and drives off when touched.
+ * Hover or tap makes it zip out to the right and pull back in from the left,
+ * like a car leaving frame and lapping round. Clipped by an overflow-hidden
+ * rail so the stroke never slides across neighbouring text.
+ */
 function Marked({ children, delay }: { children: React.ReactNode; delay: number }) {
+  const controls = useAnimationControls()
+  const reduced = useReducedMotion()
+  // One zip at a time — pointerenter and touchstart can both fire on a tap.
+  const busy = useRef(false)
+
+  useEffect(() => {
+    if (reduced) {
+      controls.set({ scaleX: 1, x: '0%' })
+      return
+    }
+    controls.start({ scaleX: 1, transition: { duration: 0.6, delay, ease: EASE } })
+  }, [controls, delay, reduced])
+
+  const zip = useCallback(async () => {
+    if (busy.current || reduced) return
+    busy.current = true
+    try {
+      await controls.start({ x: '115%', transition: { duration: 0.3, ease: 'easeIn' } })
+      controls.set({ x: '-115%' })
+      await controls.start({ x: '0%', transition: { duration: 0.55, ease: EASE } })
+    } finally {
+      busy.current = false
+    }
+  }, [controls, reduced])
+
   return (
-    <span className="relative inline-block">
+    <span className="relative inline-block" onPointerEnter={zip} onTouchStart={zip}>
       {children}
-      <motion.span
+      <span
         aria-hidden
-        className="bg-accent-500 absolute -bottom-[0.06em] left-0 h-[0.11em] w-full origin-left rounded-full"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 0.6, delay, ease: EASE }}
-      />
+        className="absolute -bottom-[0.06em] left-0 h-[0.11em] w-full overflow-hidden rounded-full"
+      >
+        <motion.span
+          className="bg-accent-500 block size-full origin-left rounded-full"
+          initial={{ scaleX: 0, x: '0%' }}
+          animate={controls}
+        />
+      </span>
     </span>
   )
 }

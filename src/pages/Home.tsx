@@ -1,36 +1,35 @@
 import { useMemo } from 'react'
-import { Hero } from '@/components/home/Hero'
 import {
-  BrandStrip,
-  FeaturedCars,
-  HowItWorks,
-  MobileApp,
-  OwnerCta,
-  Testimonials,
-  WhyChooseUs,
-} from '@/components/home/HomeSections'
+  CarCategory,
+  PerksStrip,
+  PromoBanner,
+  ShowroomHero,
+  TrendVehicles,
+} from '@/components/home/Showroom'
 import { useData } from '@/lib/hooks'
 
+/**
+ * Showroom-style landing: hero + search, browse by brand, trending cars,
+ * the four promises, and one promo. Short on purpose — everything else
+ * (how it works, why us, FAQ) has its own page a click away.
+ */
 export default function Home() {
   const { cars } = useData()
 
   const live = useMemo(() => cars.filter((c) => c.status === 'approved'), [cars])
 
-  const featured = useMemo(
-    () => [...live].sort((a, b) => b.rating - a.rating || b.tripCount - a.tripCount).slice(0, 4),
+  const trending = useMemo(
+    () => [...live].sort((a, b) => b.rating - a.rating || b.tripCount - a.tripCount),
     [live],
   )
 
   return (
     <>
-      <Hero carCount={live.length} />
-      <BrandStrip />
-      <FeaturedCars cars={featured} />
-      <HowItWorks />
-      <WhyChooseUs />
-      <Testimonials />
-      <OwnerCta />
-      <MobileApp />
+      <ShowroomHero />
+      <CarCategory />
+      <TrendVehicles cars={trending} />
+      <PerksStrip />
+      <PromoBanner cars={cars} />
     </>
   )
 }

@@ -19,6 +19,7 @@ const Favorites = lazy(() => import('@/pages/Favorites'))
 const Booking = lazy(() => import('@/pages/Booking'))
 const BookingConfirmed = lazy(() => import('@/pages/BookingConfirmed'))
 const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
+const WhyAutogo = lazy(() => import('@/pages/WhyAutogo'))
 const BecomeAHost = lazy(() => import('@/pages/BecomeAHost'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Login = lazy(() => import('@/pages/Login'))
@@ -76,6 +77,7 @@ export default function App() {
                       <Route path="compare" element={<Compare />} />
                       <Route path="favorites" element={<Favorites />} />
                       <Route path="how-it-works" element={<HowItWorks />} />
+                      <Route path="why-autogo" element={<WhyAutogo />} />
                       <Route path="become-a-host" element={<BecomeAHost />} />
                       <Route path="trust-and-safety" element={<TrustAndSafety />} />
                       <Route path="support" element={<Support />} />

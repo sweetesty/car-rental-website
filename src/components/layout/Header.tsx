@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { Logo } from './Logo'
 import { Button, LinkButton } from '@/components/ui/Button'
-import { Avatar, DemoBanner } from '@/components/ui/Misc'
+import { Avatar, DemoBanner, ReconnectingBanner } from '@/components/ui/Misc'
 import {
   useAuth,
   useData,
@@ -28,6 +28,7 @@ import { cx, titleCase } from '@/lib/format'
 
 const NAV = [
   { to: '/cars', label: 'Browse cars' },
+  { to: '/why-autogo', label: 'Why AUTOGO' },
   { to: '/how-it-works', label: 'How it works' },
   { to: '/become-a-host', label: 'List your car' },
 ]
@@ -43,7 +44,7 @@ export function Header() {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const { favorites, compare } = useFavorites()
-  const { demo, refresh } = useData()
+  const { demo, refresh, error, loading } = useData()
   const scrolled = useScrolled(4)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -81,7 +82,11 @@ export function Header() {
       )}
       style={{ backgroundColor: scrolled ? 'color-mix(in oklab, var(--surface) 88%, transparent)' : 'var(--surface)' }}
     >
-      {demo && <DemoBanner onRetry={refresh} />}
+      {demo ? (
+        <DemoBanner onRetry={refresh} />
+      ) : error && !loading ? (
+        <ReconnectingBanner onRetry={refresh} />
+      ) : null}
 
       <div className="border-subtle border-b">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">

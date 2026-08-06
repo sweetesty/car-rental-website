@@ -1,32 +1,19 @@
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  AlertTriangle,
-  Bell,
-  CalendarDays,
-  Check,
-  Download,
-  Mail,
-  MapPin,
-  MessageSquare,
-} from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Download, MapPin } from 'lucide-react'
 import { Button, LinkButton } from '@/components/ui/Button'
 import { Card, EmptyState } from '@/components/ui/Misc'
 import { BookingBadge, PaymentBadge } from '@/components/ui/Badge'
-import { useData, useToast } from '@/lib/hooks'
+import { WhatsAppButton } from '@/components/ui/WhatsApp'
+import { messages, supportLink } from '@/lib/whatsapp'
+import { downloadReceipt } from '@/lib/receipt'
+import { useData } from '@/lib/hooks'
 import { formatDate, money } from '@/lib/format'
-
-const NOTIFIED = [
-  { icon: Mail, label: 'Email receipt sent to you' },
-  { icon: MessageSquare, label: 'SMS sent to the car owner' },
-  { icon: Bell, label: 'Booking pushed to all dashboards' },
-]
 
 export default function BookingConfirmed() {
   const { id = '' } = useParams()
   const { bookings } = useData()
-  const toast = useToast()
 
   const booking = useMemo(() => bookings.find((b) => b.id === id), [bookings, id])
 
@@ -95,20 +82,8 @@ export default function BookingConfirmed() {
         </dl>
       </Card>
 
-      <ul className="mt-8 grid gap-3 sm:grid-cols-3">
-        {NOTIFIED.map((item) => (
-          <li
-            key={item.label}
-            className="surface-sunken flex items-center gap-2.5 rounded-lg border p-3.5 text-sm"
-          >
-            <item.icon className="text-brand-600 dark:text-brand-400 size-4 shrink-0" />
-            {item.label}
-          </li>
-        ))}
-      </ul>
-
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Button variant="secondary" onClick={() => toast('Receipt downloaded as PDF.')}>
+        <Button variant="secondary" onClick={() => downloadReceipt(booking)}>
           <Download className="size-4" />
           Download receipt
         </Button>
@@ -116,6 +91,11 @@ export default function BookingConfirmed() {
           <CalendarDays className="size-4" />
           View my bookings
         </LinkButton>
+        <WhatsAppButton
+          href={supportLink(messages.aboutBooking(booking.reference, booking.car?.name ?? 'my car'))}
+        >
+          Chat with support
+        </WhatsAppButton>
       </div>
 
       <p className="text-dim mt-8 text-center text-sm">

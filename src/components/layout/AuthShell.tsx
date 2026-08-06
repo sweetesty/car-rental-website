@@ -38,11 +38,18 @@ export function AuthShell({
         </motion.div>
       </div>
 
-      <aside className="bg-brand-900 dark:bg-brand-950 relative hidden overflow-hidden lg:block">
+      <aside className="bg-ink-950 relative hidden overflow-hidden lg:block">
+        {/* Ink base + a red gradient wash: tinting a photo with brand red alone
+            flattens it to a silhouette, so the image sits on neutral dark and
+            the colour is layered on top where the type isn't. */}
         <img
           src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=70"
           alt=""
-          className="absolute inset-0 size-full object-cover opacity-25"
+          className="absolute inset-0 size-full object-cover opacity-60"
+        />
+        <div
+          aria-hidden
+          className="from-brand-900/85 via-ink-950/60 to-ink-950/95 absolute inset-0 bg-gradient-to-t"
         />
         <div className="relative flex h-full flex-col justify-end p-12">
           <Quote className="text-accent-300 size-9" />

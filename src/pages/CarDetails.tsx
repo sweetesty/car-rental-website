@@ -440,6 +440,7 @@ export default function CarDetails() {
                   </p>
                 )}
               </div>
+
               <Badge tone="brand" className="mt-4">
                 Typically replies within 1 hour
               </Badge>

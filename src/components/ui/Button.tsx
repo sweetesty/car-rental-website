@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cx } from '@/lib/format'
 
-type Variant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger'
+type Variant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'inverse'
 type Size = 'sm' | 'md' | 'lg'
 
 /**
@@ -14,7 +14,9 @@ type Size = 'sm' | 'md' | 'lg'
 const BASE = [
   'group/btn relative inline-flex items-center justify-center gap-2 whitespace-nowrap',
   'rounded-[0.625rem] font-semibold tracking-[-0.01em]',
-  'transition-[transform,box-shadow,background-color,color,border-color] duration-150 ease-out',
+  // `translate,scale` — the individual properties Tailwind v4 uses for the
+  // lift/press effects. Listing `transform` here would transition nothing.
+  'transition-[translate,scale,box-shadow,background-color,color,border-color] duration-150 ease-out',
   'hover:-translate-y-px active:translate-y-0 active:scale-[0.99]',
   'disabled:pointer-events-none disabled:opacity-45',
 ].join(' ')
@@ -37,6 +39,12 @@ const VARIANTS: Record<Variant, string> = {
   ghost: 'text-ink-700 hover:bg-ink-100 dark:text-ink-300 dark:hover:bg-ink-800',
 
   danger: 'bg-red-600 text-white shadow-key hover:bg-red-700 hover:shadow-key-danger',
+
+  // White button for coloured/dark bands. A dedicated variant, not className
+  // overrides on `primary` — stacking a second colour utility onto a variant
+  // makes the winner depend on stylesheet order, not class order.
+  inverse:
+    'bg-white text-brand-700 shadow-key hover:bg-brand-50 dark:bg-white dark:text-brand-700 dark:hover:bg-brand-50',
 }
 
 const SIZES: Record<Size, string> = {

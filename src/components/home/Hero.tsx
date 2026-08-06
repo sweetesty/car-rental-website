@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { ArrowDown, Fuel, MapPin, Star, Users } from 'lucide-react'
 import { SearchBar } from '@/components/cars/SearchBar'
 import { ArrowTip, LinkButton } from '@/components/ui/Button'
@@ -9,8 +9,15 @@ import { money } from '@/lib/format'
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1400&q=80'
 
+/** Two staggered glints, different heights and speeds so the sweep never loops visibly. */
+const STREAKS = [
+  { top: '22%', duration: 2.6, delay: 2.4, gap: 3.4, opacity: 0.9 },
+  { top: '38%', duration: 3.2, delay: 4.1, gap: 4.6, opacity: 0.55 },
+]
+
 export function Hero({ carCount }: { carCount: number }) {
   const ref = useRef<HTMLElement>(null)
+  const reduced = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
 
   // The whole fold drifts and dims slightly as you scroll past it.
@@ -101,31 +108,58 @@ export function Hero({ carCount }: { carCount: number }) {
             className="relative"
           >
             <Parallax progress={scrollYProgress} distance={34}>
-              <div className="relative">
-                {/* Offset frame behind the photo — reads as considered, not templated. */}
-                <div
-                  aria-hidden
-                  className="border-accent-500/70 absolute -top-4 -right-4 bottom-4 left-4 rounded-[1.75rem] border-2"
+              <div className="relative overflow-hidden rounded-[1.5rem]">
+                {/*
+                 * Driving illusion: the photo is held over-scaled (1.12) and
+                 * glides slowly side to side inside the frame, so the scenery
+                 * appears to roll past the car. The over-scale is what gives
+                 * the pan room — without it the drift would expose the edges.
+                 */}
+                <motion.img
+                  src={HERO_IMAGE}
+                  alt="A sports car on a desert road"
+                  fetchPriority="high"
+                  className="aspect-4/5 w-full object-cover sm:aspect-4/3"
+                  initial={{ scale: 1.3 }}
+                  animate={
+                    reduced
+                      ? { scale: 1.12 }
+                      : { scale: 1.12, x: ['0%', '-3.5%', '0%'] }
+                  }
+                  transition={{
+                    scale: { duration: 1.6, delay: 0.3, ease: EASE },
+                    x: { duration: 16, delay: 1.9, repeat: Infinity, ease: 'easeInOut' },
+                  }}
                 />
-                <div className="relative overflow-hidden rounded-[1.5rem]">
-                  <motion.img
-                    src={HERO_IMAGE}
-                    alt="A saloon car parked on a city street at dusk"
-                    fetchPriority="high"
-                    className="aspect-4/5 w-full object-cover sm:aspect-4/3 lg:aspect-3/4"
-                    initial={{ scale: 1.14 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 1.6, delay: 0.3, ease: EASE }}
-                  />
-                  {/* Wipe that uncovers the photo on load. */}
-                  <motion.span
-                    aria-hidden
-                    className="bg-ink-950 absolute inset-0 origin-bottom"
-                    initial={{ scaleY: 1 }}
-                    animate={{ scaleY: 0 }}
-                    transition={{ duration: 0.9, delay: 0.25, ease: EASE }}
-                  />
-                </div>
+
+                {/* Light streaks sweeping across — the speed cue. */}
+                {!reduced &&
+                  STREAKS.map((s) => (
+                    <motion.span
+                      key={s.top}
+                      aria-hidden
+                      style={{ top: s.top }}
+                      className="absolute left-0 h-px w-40 -skew-x-[24deg] bg-gradient-to-r from-transparent via-white/70 to-transparent"
+                      initial={{ x: '-140%', opacity: 0 }}
+                      animate={{ x: ['-140%', '560%'], opacity: [0, s.opacity, 0] }}
+                      transition={{
+                        duration: s.duration,
+                        delay: s.delay,
+                        repeat: Infinity,
+                        repeatDelay: s.gap,
+                        ease: 'easeIn',
+                      }}
+                    />
+                  ))}
+
+                {/* Wipe that uncovers the photo on load. */}
+                <motion.span
+                  aria-hidden
+                  className="bg-ink-950 absolute inset-0 origin-bottom"
+                  initial={{ scaleY: 1 }}
+                  animate={{ scaleY: 0 }}
+                  transition={{ duration: 0.9, delay: 0.25, ease: EASE }}
+                />
               </div>
             </Parallax>
 

@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Environment — Firebase keys and API URLs live here, never in the repo.
+# .env.example (committed) documents every key.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

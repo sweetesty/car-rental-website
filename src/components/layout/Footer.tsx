@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Mail, MapPin, Phone } from 'lucide-react'
+import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
 import { Logo } from './Logo'
+import { useToast } from '@/lib/hooks'
 
 /* Brand marks are hand-rolled — lucide dropped third-party logos in v1. */
 const XMark = ({ className }: { className?: string }) => (
@@ -46,6 +47,7 @@ const COLUMNS = [
   {
     title: 'Company',
     links: [
+      { to: '/why-autogo', label: 'Why AUTOGO' },
       { to: '/how-it-works', label: 'How it works' },
       { to: '/trust-and-safety', label: 'Trust & safety' },
       { to: '/support', label: 'Help centre' },
@@ -62,6 +64,14 @@ const SOCIALS = [
 ]
 
 export function Footer() {
+  const toast = useToast()
+
+  const subscribe = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    toast("You're on the list — one email a month, no spam.")
+    e.currentTarget.reset()
+  }
+
   return (
     <footer className="surface-sunken mt-24 border-t">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -72,6 +82,26 @@ export function Footer() {
               Nigeria's peer-to-peer car rental marketplace. Rent from verified owners near you, or
               turn your idle car into monthly income.
             </p>
+
+            <form onSubmit={subscribe} className="mt-6 flex max-w-xs">
+              <label htmlFor="newsletter-email" className="sr-only">
+                Subscribe to the newsletter
+              </label>
+              <input
+                id="newsletter-email"
+                type="email"
+                required
+                placeholder="Email address"
+                className="surface-raised h-11 min-w-0 flex-1 rounded-l-lg border border-r-0 px-3.5 text-sm outline-none focus:border-accent-500"
+              />
+              <button
+                type="submit"
+                aria-label="Subscribe"
+                className="bg-accent-600 hover:bg-accent-500 grid h-11 w-12 shrink-0 place-items-center rounded-r-lg text-white transition-colors"
+              >
+                <ArrowRight className="size-4" />
+              </button>
+            </form>
             <ul className="text-dim mt-6 space-y-2.5 text-sm">
               <li className="flex items-center gap-2.5">
                 <MapPin className="size-4 shrink-0" />

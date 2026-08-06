@@ -64,7 +64,7 @@ export interface InsuranceInfo {
 export interface Car {
   id: string
   ownerId: string
-  owner?: Pick<User, 'id' | 'name' | 'avatarUrl' | 'verification' | 'createdAt'>
+  owner?: Pick<User, 'id' | 'name' | 'avatarUrl' | 'verification' | 'createdAt' | 'phone'>
 
   name: string
   brand: string

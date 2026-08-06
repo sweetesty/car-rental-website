@@ -23,10 +23,18 @@ export function CarCard({ car, index = 0 }: { car: Car; index?: number }) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: Math.min(index, 7) * 0.04 }}
-      className="surface-raised group relative flex flex-col overflow-hidden rounded-2xl border shadow-hairline transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-1 hover:border-ink-300 hover:shadow-lift-lg dark:hover:border-ink-600"
+      // whileInView, not mount: cards below the fold slide up as you scroll to
+      // them, staggered by grid column so each row sweeps left to right.
+      // initial={false} + keyframes is deliberate — if the intersection
+      // observer never fires, the card is visible instead of stuck hidden.
+      initial={false}
+      whileInView={{ opacity: [0, 1], y: [44, 0] }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      // Transition list deliberately covers `translate` (the hover lift), NOT
+      // `transform` — that's framer-motion's channel for the scroll entrance,
+      // and a CSS transition on it swallows the animation frame by frame.
+      className="surface-raised group relative flex flex-col overflow-hidden rounded-2xl border shadow-hairline transition-[box-shadow,translate,border-color] duration-200 hover:-translate-y-1 hover:border-ink-300 hover:shadow-lift-lg dark:hover:border-ink-600"
     >
       <div className="surface-sunken relative aspect-16/10 overflow-hidden">
         <img

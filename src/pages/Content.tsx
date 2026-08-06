@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Card, SectionHeading } from '@/components/ui/Misc'
 import { LinkButton } from '@/components/ui/Button'
+import { supportLink } from '@/lib/whatsapp'
 
 const Page = ({
   title,
@@ -159,7 +160,7 @@ const CHANNELS = [
     title: 'WhatsApp',
     body: 'Fastest for anything mid-trip',
     action: 'Chat with us',
-    href: 'https://wa.me/2348000000000',
+    href: supportLink(),
   },
 ]
 

@@ -170,6 +170,7 @@ export function toCar(dto: CarDTO): Car {
       avatarUrl: owner.avatarUrl,
       verification: owner.verification,
       createdAt: owner.createdAt,
+      phone: owner.phone,
     },
 
     name: dto.name,

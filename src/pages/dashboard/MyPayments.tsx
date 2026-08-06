@@ -5,14 +5,14 @@ import { Table, type Column } from '@/components/ui/Table'
 import { EmptyState, StatTile } from '@/components/ui/Misc'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { useAuth, useData, useToast } from '@/lib/hooks'
+import { useAuth, useData } from '@/lib/hooks'
+import { downloadReceipt } from '@/lib/receipt'
 import { formatDate, money, titleCase } from '@/lib/format'
 import type { Transaction } from '@/lib/types'
 
 export default function MyPayments() {
   const { user } = useAuth()
   const { transactions, bookings } = useData()
-  const toast = useToast()
 
   const mine = useMemo(() => {
     const myBookingIds = new Set(
@@ -58,11 +58,20 @@ export default function MyPayments() {
       key: 'receipt',
       header: '',
       align: 'right',
-      cell: () => (
-        <Button variant="ghost" size="sm" onClick={() => toast('Receipt downloaded.')}>
-          <Download className="size-3.5" />
-        </Button>
-      ),
+      cell: (t) => {
+        const booking = bookings.find((b) => b.id === t.bookingId)
+        if (!booking) return null
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Download receipt"
+            onClick={() => downloadReceipt(booking)}
+          >
+            <Download className="size-3.5" />
+          </Button>
+        )
+      },
     },
   ]
 

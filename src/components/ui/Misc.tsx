@@ -197,6 +197,28 @@ export function DemoBanner({ onRetry }: { onRetry: () => void }) {
   )
 }
 
+/** Production counterpart to DemoBanner: API down, no fake data — just retry. */
+export function ReconnectingBanner({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="border-b border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
+        <WifiOff className="size-4 shrink-0" />
+        <p className="flex-1">
+          <span className="font-bold">Reconnecting…</span> We can't reach the AUTOGO server right
+          now. Retrying automatically — live cars will appear the moment it answers.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-lg border border-amber-400 px-3 py-1 font-semibold dark:border-amber-800"
+        >
+          Retry now
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
