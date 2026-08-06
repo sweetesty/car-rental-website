@@ -1,0 +1,311 @@
+import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { Role, User } from '@/lib/types'
+import { authService } from '@/lib/services'
+import { isApiUnavailable, setUnauthorizedHandler } from '@/lib/api'
+import {
+  firebaseConfigured,
+  firebaseError,
+  firebaseSignOut,
+  registerWithPassword,
+  signInWithGoogle,
+  signInWithPassword,
+  watchAuth,
+} from '@/lib/firebase'
+import { allUsers } from '@/lib/mockData'
+
+/** Password for the bundled demo accounts when Firebase/the API is unavailable. */
+const DEMO_PASSWORD = 'autogo'
+
+interface AuthValue {
+  user: User | null
+  loading: boolean
+  /** True when the session is a local demo account, not a real Firebase one. */
+  demoSession: boolean
+  login: (email: string, password: string) => Promise<User>
+  loginWithGoogle: () => Promise<User>
+  register: (input: RegisterInput) => Promise<User>
+  logout: () => void
+  updateUser: (patch: Partial<User>) => Promise<void>
+  /** Convenience for guards and conditional nav. */
+  hasRole: (...roles: Role[]) => boolean
+}
+
+export interface RegisterInput {
+  name: string
+  email: string
+  phone: string
+  password: string
+  role: Exclude<Role, 'admin'>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext<AuthValue>(null as unknown as AuthValue)
+
+const USER_KEY = 'autogo:user'
+const DEMO_KEY = 'autogo:demo-session'
+
+/**
+ * Authentication is Firebase on the client, exchanged for the AUTOGO user
+ * record via `POST /api/auth/sync`. Firebase owns the credentials; Mongo owns
+ * the role, KYC state and everything else the UI needs.
+ *
+ * When Firebase isn't configured (or the API can't be reached) this falls back
+ * to the bundled seed accounts so the whole app stays walkable offline.
+ */
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [demoSession, setDemoSession] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Carried into the /sync call that follows a fresh registration.
+  const pendingSignup = useRef<{ role: 'customer' | 'owner'; phone: string } | null>(null)
+
+  const persist = useCallback((next: User | null, demo = false) => {
+    setUser(next)
+    setDemoSession(demo)
+    if (next) {
+      localStorage.setItem(USER_KEY, JSON.stringify(next))
+      if (demo) localStorage.setItem(DEMO_KEY, '1')
+      else localStorage.removeItem(DEMO_KEY)
+    } else {
+      localStorage.removeItem(USER_KEY)
+      localStorage.removeItem(DEMO_KEY)
+    }
+  }, [])
+
+  const logout = useCallback(() => {
+    void firebaseSignOut()
+    persist(null)
+  }, [persist])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => persist(null))
+  }, [persist])
+
+  /** Restores a demo session across reloads; Firebase restores its own. */
+  const restoreDemoSession = useCallback(() => {
+    if (localStorage.getItem(DEMO_KEY) !== '1') return false
+    const raw = localStorage.getItem(USER_KEY)
+    if (!raw) return false
+    try {
+      persist(JSON.parse(raw) as User, true)
+      return true
+    } catch {
+      return false
+    }
+  }, [persist])
+
+  // Firebase is the source of truth for "is someone signed in". Every state
+  // change re-syncs the Mongo record so role/KYC edits land without a reload.
+  useEffect(() => {
+    let cancelled = false
+
+    const unsubscribe = watchAuth(async (firebaseUser) => {
+      if (cancelled) return
+
+      if (!firebaseUser) {
+        if (!restoreDemoSession()) persist(null)
+        setLoading(false)
+        return
+      }
+
+      const signup = pendingSignup.current
+      pendingSignup.current = null
+
+      try {
+        const synced = await authService.sync(signup ?? {})
+        if (!cancelled) persist(synced)
+      } catch (err) {
+        if (cancelled) return
+        // Signed in with Firebase but the API can't confirm the record. Keep the
+        // session rather than bouncing the user out of an app they just entered.
+        if (isApiUnavailable(err)) {
+          persist({
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'AUTOGO user',
+            email: firebaseUser.email ?? '',
+            phone: signup?.phone,
+            role: signup?.role ?? 'customer',
+            verification: 'unverified',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          })
+        } else {
+          persist(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [persist, restoreDemoSession])
+
+  /** Signs in against the bundled seed accounts when there's no real backend. */
+  const demoLogin = useCallback(
+    (email: string, password: string) => {
+      const found = allUsers.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
+      if (!found || password !== DEMO_PASSWORD) {
+        throw new Error('Incorrect email or password.')
+      }
+      if (found.status === 'suspended') {
+        throw new Error('This account is suspended. Contact support@autogo.ng.')
+      }
+      persist(found, true)
+      setLoading(false)
+      return found
+    },
+    [persist],
+  )
+
+  /** Exchanges a live Firebase session for the Mongo record, tolerating a down API. */
+  const syncOrFallback = useCallback(
+    async (uid: string, email: string) => {
+      try {
+        const synced = await authService.sync()
+        persist(synced)
+        return synced
+      } catch (err) {
+        if (!isApiUnavailable(err)) throw err
+        const stub: User = {
+          id: uid,
+          name: email.split('@')[0],
+          email,
+          role: 'customer',
+          verification: 'unverified',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }
+        persist(stub)
+        return stub
+      }
+    },
+    [persist],
+  )
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      if (!firebaseConfigured) return demoLogin(email, password)
+      try {
+        const firebaseUser = await signInWithPassword(email.trim(), password)
+        return await syncOrFallback(firebaseUser.uid, email)
+      } catch (err) {
+        // A demo email typed against a live Firebase project should still work.
+        if (allUsers.some((u) => u.email.toLowerCase() === email.trim().toLowerCase())) {
+          return demoLogin(email, password)
+        }
+        throw new Error(firebaseError(err))
+      }
+    },
+    [demoLogin, syncOrFallback],
+  )
+
+  const loginWithGoogle = useCallback(async () => {
+    if (!firebaseConfigured) {
+      throw new Error('Google sign-in needs Firebase configured. Use a demo account for now.')
+    }
+    try {
+      const firebaseUser = await signInWithGoogle()
+      return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '')
+    } catch (err) {
+      throw new Error(firebaseError(err))
+    }
+  }, [syncOrFallback])
+
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      const email = input.email.trim().toLowerCase()
+      const name = input.name.trim()
+
+      if (!firebaseConfigured) {
+        // Offline: mint a local-only account so the flow can still be walked.
+        const created: User = {
+          id: `u-${Date.now()}`,
+          name,
+          email,
+          phone: input.phone.trim(),
+          role: input.role,
+          verification: 'unverified',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        }
+        persist(created, true)
+        setLoading(false)
+        return created
+      }
+
+      try {
+        // Handed to the watchAuth listener, which creates the Mongo record.
+        pendingSignup.current = { role: input.role, phone: input.phone.trim() }
+        await registerWithPassword(email, input.password, name)
+        const synced = await authService.sync({ role: input.role, phone: input.phone.trim() })
+        persist(synced)
+        return synced
+      } catch (err) {
+        pendingSignup.current = null
+        if (isApiUnavailable(err)) {
+          const created: User = {
+            id: `u-${Date.now()}`,
+            name,
+            email,
+            phone: input.phone.trim(),
+            role: input.role,
+            verification: 'unverified',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+          }
+          persist(created)
+          return created
+        }
+        throw new Error(firebaseError(err))
+      }
+    },
+    [persist],
+  )
+
+  const updateUser = useCallback(
+    async (patch: Partial<User>) => {
+      if (demoSession || !firebaseConfigured) {
+        if (user) persist({ ...user, ...patch }, demoSession)
+        return
+      }
+      try {
+        const updated = await authService.updateProfile({
+          name: patch.name,
+          phone: patch.phone,
+          verification: patch.verification,
+        })
+        persist(updated)
+      } catch (err) {
+        if (!isApiUnavailable(err) || !user) throw err
+        persist({ ...user, ...patch })
+      }
+    },
+    [persist, user, demoSession],
+  )
+
+  const hasRole = useCallback(
+    (...roles: Role[]) => (user ? roles.includes(user.role) : false),
+    [user],
+  )
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      demoSession,
+      login,
+      loginWithGoogle,
+      register,
+      logout,
+      updateUser,
+      hasRole,
+    }),
+    [user, loading, demoSession, login, loginWithGoogle, register, logout, updateUser, hasRole],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}

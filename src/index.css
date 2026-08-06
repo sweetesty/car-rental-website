@@ -1,0 +1,170 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode so the header toggle can drive it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ── Brand: AUTOGO red on white. One hue carries the whole identity, so
+     `brand` and `accent` are deliberately the same ramp — accent names the
+     high-chroma fills, brand names everything structural. ── */
+  --color-brand-50: oklch(0.972 0.014 25);
+  --color-brand-100: oklch(0.94 0.035 25);
+  --color-brand-200: oklch(0.882 0.072 25);
+  --color-brand-300: oklch(0.802 0.125 26);
+  --color-brand-400: oklch(0.702 0.183 27);
+  --color-brand-500: oklch(0.628 0.222 28);
+  --color-brand-600: oklch(0.558 0.212 28);
+  --color-brand-700: oklch(0.474 0.178 28);
+  --color-brand-800: oklch(0.392 0.144 28);
+  --color-brand-900: oklch(0.312 0.108 28);
+  --color-brand-950: oklch(0.212 0.072 28);
+
+  /* ── Accent: the same red. 400–600 are fills that carry WHITE text;
+     700–800 are the darkened steps for red text on a light surface. ── */
+  --color-accent-100: oklch(0.94 0.035 25);
+  --color-accent-300: oklch(0.802 0.125 26);
+  --color-accent-400: oklch(0.702 0.183 27);
+  --color-accent-500: oklch(0.628 0.222 28);
+  --color-accent-600: oklch(0.558 0.212 28);
+  --color-accent-700: oklch(0.474 0.178 28);
+  --color-accent-800: oklch(0.392 0.144 28);
+
+  /* ── Ink: cool neutral ramp for surfaces and text. ── */
+  --color-ink-50: oklch(0.985 0.002 250);
+  --color-ink-100: oklch(0.968 0.004 250);
+  --color-ink-200: oklch(0.925 0.007 250);
+  --color-ink-300: oklch(0.865 0.011 250);
+  --color-ink-400: oklch(0.7 0.015 252);
+  --color-ink-500: oklch(0.57 0.017 253);
+  --color-ink-600: oklch(0.46 0.017 254);
+  --color-ink-700: oklch(0.37 0.016 255);
+  --color-ink-800: oklch(0.27 0.015 256);
+  --color-ink-900: oklch(0.19 0.014 258);
+  --color-ink-950: oklch(0.13 0.012 260);
+
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius-card: 1rem;
+
+  --shadow-lift:
+    0 1px 2px oklch(0.13 0.012 260 / 0.06), 0 8px 24px -8px oklch(0.13 0.012 260 / 0.12);
+  --shadow-lift-lg:
+    0 2px 4px oklch(0.13 0.012 260 / 0.06), 0 18px 40px -12px oklch(0.13 0.012 260 / 0.18);
+
+  /* Button depth: a 1px inner highlight along the top edge plus a cast shadow.
+     It's the inner highlight that stops solid fills reading as flat rectangles. */
+  --shadow-key: 0 1px 0 oklch(1 0 0 / 0.14) inset, 0 1px 2px oklch(0.13 0.012 260 / 0.35);
+  --shadow-key-hover:
+    0 1px 0 oklch(1 0 0 / 0.18) inset, 0 8px 20px -6px oklch(0.13 0.012 260 / 0.45);
+  --shadow-key-light: 0 1px 2px oklch(0 0 0 / 0.45);
+  --shadow-key-accent:
+    0 1px 0 oklch(1 0 0 / 0.22) inset, 0 8px 22px -6px oklch(0.628 0.222 28 / 0.55);
+  --shadow-key-danger: 0 1px 0 oklch(1 0 0 / 0.16) inset, 0 8px 20px -6px oklch(0.55 0.22 25 / 0.5);
+  --shadow-hairline: 0 1px 1px oklch(0.13 0.012 260 / 0.04);
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes shimmer {
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/* Semantic surface tokens — flipped once here, consumed everywhere. */
+@layer base {
+  :root {
+    --surface: var(--color-white);
+    --surface-sunken: var(--color-ink-50);
+    --surface-raised: var(--color-white);
+    --border-subtle: var(--color-ink-200);
+    --text-strong: var(--color-ink-950);
+    --text-dim: var(--color-ink-500);
+  }
+
+  .dark {
+    --surface: var(--color-ink-950);
+    --surface-sunken: oklch(0.1 0.012 260);
+    --surface-raised: var(--color-ink-900);
+    --border-subtle: var(--color-ink-800);
+    --text-strong: var(--color-ink-50);
+    --text-dim: var(--color-ink-400);
+  }
+
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--surface);
+    color: var(--text-strong);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, consistent focus ring for keyboard users. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-900);
+  }
+}
+
+@layer utilities {
+  .surface {
+    background-color: var(--surface);
+  }
+  .surface-sunken {
+    background-color: var(--surface-sunken);
+  }
+  .surface-raised {
+    background-color: var(--surface-raised);
+  }
+  .text-dim {
+    color: var(--text-dim);
+  }
+  .border-subtle {
+    border-color: var(--border-subtle);
+  }
+
+  /* Skeleton placeholder while data loads. */
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      var(--surface-sunken) 0%,
+      var(--border-subtle) 50%,
+      var(--surface-sunken) 100%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
