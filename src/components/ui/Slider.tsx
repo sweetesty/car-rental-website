@@ -57,9 +57,9 @@ export function Slider({ children, label, className, action, title }: SliderProp
   }
 
   return (
-    <div className={className}>
+    <div className={cx("min-w-0 max-w-full overflow-hidden", className)}>
       {(title || action) && (
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4 pr-4">
           {title}
           <div className="flex items-center gap-2">
             {action}
@@ -73,7 +73,8 @@ export function Slider({ children, label, className, action, title }: SliderProp
 
       {/* min-w-0 is load-bearing: without it the shrink-0 slides force this
           track to expand, which pushes the whole page into horizontal scroll
-          instead of scrolling inside the rail. */}
+          instead of scrolling inside the rail. max-w-full is also required
+          for iOS Safari flex blowout prevention. */}
       <div
         ref={trackRef}
         role="region"
@@ -84,7 +85,7 @@ export function Slider({ children, label, className, action, title }: SliderProp
           // on a snap point even when the content can't reach it, which on iOS
           // leaves dead space after the final card. Proximity snaps only when
           // a card is already close, so the rail stops cleanly at the end.
-          'flex w-full min-w-0 snap-x snap-proximity gap-4 overflow-x-auto scroll-smooth pb-2',
+          'flex w-full min-w-0 max-w-full snap-x snap-proximity gap-4 overflow-x-auto scroll-smooth pb-2',
           // Stops the gesture chaining to the document when the rail hits its
           // end — without this, swiping past the last card drags the whole page
           // sideways and exposes blank space beside it.

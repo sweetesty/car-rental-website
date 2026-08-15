@@ -154,7 +154,7 @@ function RateSearch() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
             aria-label="Pick-up city"
-            className="w-full cursor-pointer bg-transparent text-sm font-semibold outline-none"
+            className="w-full min-w-0 cursor-pointer bg-transparent text-sm font-semibold outline-none"
           >
             <option value="">Anywhere in Nigeria</option>
             {CITIES.map((c) => (
@@ -172,7 +172,7 @@ function RateSearch() {
             min={todayISO()}
             onChange={(e) => setStartDate(e.target.value)}
             aria-label="Pick-up date"
-            className="w-full bg-transparent text-sm font-semibold outline-none"
+            className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none"
           />
         </Field>
 

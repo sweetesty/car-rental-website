@@ -88,7 +88,7 @@ export function Header() {
       ) : null}
 
       <div className="border-subtle border-b">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-1.5 px-3 sm:gap-3 sm:px-6 lg:px-8">
           <Logo />
 
           <nav className="ml-6 hidden items-center gap-1 lg:flex">
@@ -130,7 +130,7 @@ export function Header() {
               type="button"
               onClick={toggle}
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-              className="text-dim hover:surface-sunken hover:text-ink-950 dark:hover:text-white rounded-lg p-2.5 transition-colors"
+              className="text-dim hover:surface-sunken hover:text-ink-950 dark:hover:text-white rounded-lg p-1.5 transition-colors sm:p-2.5"
             >
               {theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </button>
@@ -202,7 +202,7 @@ export function Header() {
               onClick={() => setMobileOpen((v) => !v)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
-              className="hover:surface-sunken rounded-lg p-2.5 lg:hidden"
+              className="hover:surface-sunken rounded-lg p-1.5 transition-colors sm:p-2.5 lg:hidden"
             >
               {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
@@ -267,7 +267,7 @@ function IconLink({
     <Link
       to={to}
       aria-label={`${label}${count ? ` (${count})` : ''}`}
-      className="text-dim hover:surface-sunken hover:text-ink-950 dark:hover:text-white relative rounded-lg p-2.5 transition-colors"
+      className="text-dim hover:surface-sunken hover:text-ink-950 dark:hover:text-white relative rounded-lg p-1.5 transition-colors sm:p-2.5"
     >
       {children}
       {count > 0 && (

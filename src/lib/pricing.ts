@@ -1,8 +1,25 @@
 import type { Car } from './types'
 import { daysBetween } from './format'
 
-export const SERVICE_FEE_RATE = 0.1
-export const INSURANCE_FEE_PER_DAY = 3500
+/**
+ * Commercial rates used to quote a price in the UI.
+ *
+ * These are only fallbacks for the very first paint. The real values come from
+ * GET /api/config and are applied via `setRates` as soon as they land, so an
+ * adjusted fee takes effect everywhere without rebuilding the frontend. The
+ * server prices the booking regardless — this only decides what's displayed.
+ */
+export let SERVICE_FEE_RATE = 0.1
+export let INSURANCE_FEE_PER_DAY = 3500
+
+export function setRates(rates: { serviceFeeRate?: number; insuranceFeePerDay?: number }) {
+  if (typeof rates.serviceFeeRate === 'number' && rates.serviceFeeRate >= 0) {
+    SERVICE_FEE_RATE = rates.serviceFeeRate
+  }
+  if (typeof rates.insuranceFeePerDay === 'number' && rates.insuranceFeePerDay >= 0) {
+    INSURANCE_FEE_PER_DAY = rates.insuranceFeePerDay
+  }
+}
 
 export interface Quote {
   days: number

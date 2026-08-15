@@ -163,6 +163,30 @@ export const reviewService = {
   },
 }
 
+/* ── Platform config ── */
+
+export interface PlatformConfig {
+  serviceFeeRate: number
+  serviceFeePercent: number
+  insuranceFeePerDay: number
+  cancellationRefundRate: number
+  currency: string
+}
+
+export const configService = {
+  /**
+   * Commercial rates, read from the server rather than hardcoded here.
+   *
+   * The API is the authority on what a booking costs. Keeping a second copy in
+   * this bundle is exactly how a quoted price drifts from a charged one after
+   * someone adjusts the fee.
+   */
+  async get() {
+    const { data } = await api.get<PlatformConfig>('/config')
+    return data
+  },
+}
+
 /* ── Uploads ── */
 
 export interface UploadedImage {

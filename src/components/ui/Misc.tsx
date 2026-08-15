@@ -179,7 +179,7 @@ export function DemoBanner({ onRetry }: { onRetry: () => void }) {
     <div className="border-b border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
         <WifiOff className="size-4 shrink-0" />
-        <p className="flex-1">
+        <p className="min-w-0 flex-1">
           <span className="font-bold">Demo mode.</span> The AUTOGO API isn't reachable, so sample
           data is being shown. Start the backend in <code className="font-semibold">/server</code>{' '}
           (with MongoDB running) for live data. Demo sign-in password:{' '}
@@ -210,7 +210,7 @@ export function ReconnectingBanner({ onRetry }: { onRetry: () => void }) {
     <div className="border-b border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 text-sm sm:px-6 lg:px-8">
         <WifiOff className="size-4 shrink-0" />
-        <p className="flex-1">
+        <p className="min-w-0 flex-1">
           <span className="font-bold">Having trouble loading cars.</span> Check your connection —
           we'll keep trying.
         </p>

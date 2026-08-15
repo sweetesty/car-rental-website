@@ -22,7 +22,12 @@ interface AuthValue {
   /** True when the session is a local demo account, not a real Firebase one. */
   demoSession: boolean
   login: (email: string, password: string) => Promise<User>
-  loginWithGoogle: () => Promise<User>
+  /**
+   * `role` is only honoured when the account is created — Google sign-in from
+   * the register page can therefore produce an owner, while signing in from
+   * the login page leaves an existing account's role untouched.
+   */
+  loginWithGoogle: (role?: 'customer' | 'owner') => Promise<User>
   register: (input: RegisterInput) => Promise<User>
   logout: () => void
   updateUser: (patch: Partial<User>) => Promise<void>
@@ -161,11 +166,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   )
 
-  /** Exchanges a live Firebase session for the Mongo record, tolerating a down API. */
+  /**
+   * Exchanges a live Firebase session for the Mongo record, tolerating a down API.
+   *
+   * `role` reaches the server only to seed a brand-new account; /auth/sync
+   * ignores it for an existing user, so signing in again can never silently
+   * change someone's role.
+   */
   const syncOrFallback = useCallback(
-    async (uid: string, email: string) => {
+    async (uid: string, email: string, role?: 'customer' | 'owner') => {
       try {
-        const synced = await authService.sync()
+        const synced = await authService.sync(role ? { role } : {})
         persist(synced)
         return synced
       } catch (err) {
@@ -174,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: uid,
           name: email.split('@')[0],
           email,
-          role: 'customer',
+          role: role ?? 'customer',
           verification: 'unverified',
           status: 'active',
           createdAt: new Date().toISOString(),
@@ -203,17 +214,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [demoLogin, syncOrFallback],
   )
 
-  const loginWithGoogle = useCallback(async () => {
-    if (!firebaseConfigured) {
-      throw new Error('Google sign-in needs Firebase configured. Use a demo account for now.')
-    }
-    try {
-      const firebaseUser = await signInWithGoogle()
-      return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '')
-    } catch (err) {
-      throw new Error(firebaseError(err))
-    }
-  }, [syncOrFallback])
+  const loginWithGoogle = useCallback(
+    async (role?: 'customer' | 'owner') => {
+      if (!firebaseConfigured) {
+        throw new Error('Google sign-in needs Firebase configured. Use a demo account for now.')
+      }
+      try {
+        const firebaseUser = await signInWithGoogle()
+        return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '', role)
+      } catch (err) {
+        throw new Error(firebaseError(err))
+      }
+    },
+    [syncOrFallback],
+  )
 
   const register = useCallback(
     async (input: RegisterInput) => {
