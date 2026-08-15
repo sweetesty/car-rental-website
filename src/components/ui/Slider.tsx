@@ -80,7 +80,11 @@ export function Slider({ children, label, className, action, title }: SliderProp
         aria-label={label}
         tabIndex={0}
         className={cx(
-          'flex w-full min-w-0 snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2',
+          // `proximity`, not `mandatory`: mandatory forces the browser to land
+          // on a snap point even when the content can't reach it, which on iOS
+          // leaves dead space after the final card. Proximity snaps only when
+          // a card is already close, so the rail stops cleanly at the end.
+          'flex w-full min-w-0 snap-x snap-proximity gap-4 overflow-x-auto scroll-smooth pb-2',
           // Stops the gesture chaining to the document when the rail hits its
           // end — without this, swiping past the last card drags the whole page
           // sideways and exposes blank space beside it.

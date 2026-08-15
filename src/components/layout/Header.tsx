@@ -16,14 +16,7 @@ import {
 import { Logo } from './Logo'
 import { Button, LinkButton } from '@/components/ui/Button'
 import { Avatar, DemoBanner, ReconnectingBanner } from '@/components/ui/Misc'
-import {
-  useAuth,
-  useData,
-  useFavorites,
-  useLockBodyScroll,
-  useScrolled,
-  useTheme,
-} from '@/lib/hooks'
+import { useAuth, useData, useFavorites, useScrolled, useTheme } from '@/lib/hooks'
 import { cx, titleCase } from '@/lib/format'
 
 const NAV = [
@@ -52,7 +45,9 @@ export function Header() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  useLockBodyScroll(mobileOpen)
+  // Deliberately NOT locking body scroll here. This menu is a short inline
+  // dropdown, not a full-screen drawer — freezing the page traps the user, and
+  // on iOS toggling body overflow mid-scroll makes the viewport jump.
 
   // Route changes should always close whatever was open.
   useEffect(() => {
