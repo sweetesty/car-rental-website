@@ -103,23 +103,21 @@
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
 
-    /* The page is never meant to scroll sideways.
+    /* `clip` ONLY — never `hidden`.
      *
-     * Two declarations on purpose: `clip` is the one we want (it doesn't make
-     * this a scroll container, so the sticky header keeps working), but it
-     * needs Safari 16+. Older iOS ignores it entirely and the page scrolls
-     * horizontally. Browsers that don't understand `clip` fall back to the
-     * `hidden` above it — losing sticky positioning there, which is a fair
-     * trade against a page that slides sideways into blank space. */
-    overflow-x: hidden;
+     * overflow:hidden on html/body turns them into scroll containers, which
+     * silently disables position:sticky for every descendant: the header stops
+     * following the page on mobile. `clip` prevents sideways scrolling without
+     * creating a scroll container, so sticky survives.
+     *
+     * Pre-16 Safari ignores `clip`, so it is not a complete guard there — the
+     * real defence is that no element is wider than the viewport, which is
+     * enforced at the components themselves. */
     overflow-x: clip;
   }
 
   body {
-    /* Same pair, same reason. Also caps the body at the viewport so a stray
-       wide child can't stretch it on browsers that honour neither. */
     max-width: 100%;
-    overflow-x: hidden;
     overflow-x: clip;
   }
 
