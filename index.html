@@ -15,5 +15,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // DEBUG: Find overflowing elements and outline them in red
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const docWidth = document.documentElement.clientWidth;
+          document.querySelectorAll('*').forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.right > docWidth && el.tagName !== 'HTML' && el.tagName !== 'BODY' && el.tagName !== 'SCRIPT') {
+              console.log('OVERFLOWING ELEMENT:', el.tagName, el.className);
+              el.style.outline = '5px solid red';
+              el.style.outlineOffset = '-5px';
+            }
+          });
+        }, 1000);
+      });
+    </script>
   </body>
 </html>

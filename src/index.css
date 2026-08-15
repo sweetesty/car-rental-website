@@ -113,12 +113,12 @@
      * Pre-16 Safari ignores `clip`, so it is not a complete guard there — the
      * real defence is that no element is wider than the viewport, which is
      * enforced at the components themselves. */
-    overflow-x: clip;
+    overflow-x: hidden;
   }
 
   body {
     max-width: 100%;
-    overflow-x: clip;
+    overflow-x: hidden;
     overscroll-behavior-x: none;
   }
 
