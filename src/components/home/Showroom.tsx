@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button, LinkButton } from '@/components/ui/Button'
 import { Rating } from '@/components/ui/Rating'
+import { SlideItem, Slider } from '@/components/ui/Slider'
 import { EASE } from './motion'
 import { addDays, cx, money, todayISO } from '@/lib/format'
 import { CITIES } from '@/lib/catalog'
@@ -211,59 +212,89 @@ function Field({
   )
 }
 
-/* ── Car category: brand cards in monochrome ── */
+/* ── Car category: brands derived from the live fleet ── */
 
-const CATEGORIES = [
-  {
-    brand: 'Mercedes-Benz',
-    img: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=700&q=70',
-  },
-  {
-    brand: 'BMW',
-    img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=700&q=70',
-  },
-  {
-    brand: 'Toyota',
-    img: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=700&q=70',
-  },
-  {
-    brand: 'Lexus',
-    img: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=700&q=70',
-  },
-]
+const BODY_LABELS: Record<Car['bodyType'], string> = {
+  suv: 'SUV',
+  sedan: 'Sedan',
+  hatchback: 'Hatchback',
+  pickup: 'Pickup',
+  van: 'Van & bus',
+  coupe: 'Coupé',
+}
 
-export function CarCategory() {
+/**
+ * Categories are body types, not brands.
+ *
+ * A tile labelled "Toyota" is only honest if its photo is genuinely a Toyota,
+ * which no stock image can guarantee. A tile labelled "SUV" just needs a photo
+ * of an SUV — and since each car records its own body type, the picture is
+ * drawn from a car that IS one. Body type is also what renters actually filter
+ * by ("I need seven seats"), so it earns its place twice over.
+ */
+export function CarCategory({ cars }: { cars: Car[] }) {
+  const categories = useMemo(() => {
+    const grouped = new Map<Car['bodyType'], { count: number; image: string }>()
+
+    for (const car of cars) {
+      if (car.status !== 'approved' || !car.images[0]) continue
+      const seen = grouped.get(car.bodyType)
+      grouped.set(car.bodyType, {
+        count: (seen?.count ?? 0) + 1,
+        image: seen?.image ?? car.images[0],
+      })
+    }
+
+    return [...grouped.entries()]
+      .map(([bodyType, data]) => ({ bodyType, label: BODY_LABELS[bodyType], ...data }))
+      .sort((a, b) => b.count - a.count)
+  }, [cars])
+
+  if (categories.length === 0) return null
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-      <motion.h2 {...fadeUp} className="text-4xl font-black tracking-[-0.035em] sm:text-5xl">
-        Car category
-      </motion.h2>
-
-      <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {CATEGORIES.map((cat, i) => (
-          <motion.div
-            key={cat.brand}
-            {...fadeUp}
-            transition={{ duration: 0.6, delay: i * 0.07, ease: EASE }}
-          >
+      <Slider
+        label="car categories"
+        title={
+          <motion.div {...fadeUp}>
+            <h2 className="text-4xl font-black tracking-[-0.035em] sm:text-5xl">Car category</h2>
+            <p className="text-dim mt-2">Find the shape of car you need.</p>
+          </motion.div>
+        }
+        action={
+          <LinkButton to="/cars" variant="secondary" size="sm" className="rounded-full">
+            All cars
+            <ArrowUpRight className="size-3.5" />
+          </LinkButton>
+        }
+      >
+        {categories.map((cat, i) => (
+          <SlideItem key={cat.bodyType}>
             <Link
-              to={`/cars?brand=${encodeURIComponent(cat.brand)}`}
+              to={`/cars?bodyType=${cat.bodyType}`}
               className="group relative block aspect-4/5 overflow-hidden rounded-xl"
             >
-              {/* Monochrome until hover — colour is the reward for intent. */}
+              {/* Full colour always: greyscale-until-hover hid the actual cars,
+                  and on touch devices there is no hover to reveal them. */}
               <img
-                src={cat.img}
-                alt={`${cat.brand} cars for hire`}
-                loading="lazy"
-                className="absolute inset-0 size-full object-cover grayscale transition-[filter,scale] duration-500 group-hover:scale-105 group-hover:grayscale-0"
+                src={cat.image}
+                alt={`${cat.label} cars for hire`}
+                loading={i < 4 ? 'eager' : 'lazy'}
+                className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div
                 aria-hidden
-                className="from-ink-950/70 absolute inset-0 bg-gradient-to-b via-transparent to-ink-950/40"
+                className="from-ink-950/80 absolute inset-0 bg-gradient-to-b via-ink-950/10 to-ink-950/50"
               />
-              <h3 className="absolute top-4 left-4 max-w-[80%] text-lg font-bold tracking-tight text-white sm:text-xl">
-                {cat.brand}
-              </h3>
+
+              {/* Name only — no price on the picture. */}
+              <div className="absolute top-4 left-4 max-w-[85%]">
+                <h3 className="text-lg font-bold tracking-tight text-white sm:text-xl">
+                  {cat.label}
+                </h3>
+              </div>
+
               <span
                 className={cx(
                   'absolute right-3 bottom-3 grid size-9 place-items-center rounded-full text-white transition-[background-color,translate] duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
@@ -275,71 +306,86 @@ export function CarCategory() {
                 <ArrowUpRight className="size-4" />
               </span>
             </Link>
-          </motion.div>
+          </SlideItem>
         ))}
-      </div>
+      </Slider>
     </section>
   )
 }
 
-/* ── Trend vehicles: flat product cards, first one tinted ── */
+/* ── Trend vehicles ── */
 
 export function TrendVehicles({ cars }: { cars: Car[] }) {
+  if (cars.length === 0) return null
+
   return (
     <section className="surface-sunken border-y">
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-        <div className="flex items-end justify-between gap-4">
-          <motion.h2 {...fadeUp} className="text-4xl font-black tracking-[-0.035em] sm:text-5xl">
-            Trend vehicles
-          </motion.h2>
-          <LinkButton to="/cars" variant="secondary" size="sm" className="rounded-full">
-            View all
-            <ArrowUpRight className="size-3.5" />
-          </LinkButton>
-        </div>
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cars.slice(0, 4).map((car, i) => (
-            <motion.article
-              key={car.id}
-              {...fadeUp}
-              transition={{ duration: 0.6, delay: (i % 4) * 0.07, ease: EASE }}
-              className={cx(
-                'flex flex-col rounded-xl border p-5',
-                i === 0 ? 'bg-brand-50 dark:bg-brand-950/40' : 'surface-raised',
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-bold tracking-tight">
-                  {car.brand} {car.model}
-                </h3>
-                <Rating value={car.rating} />
-              </div>
-              <p className="text-dim mt-0.5 text-xs">
-                {car.year} · {car.seats} seats · {car.city}
-              </p>
-
-              <Link to={`/cars/${car.id}`} className="group my-5 block overflow-hidden rounded-lg">
-                <img
-                  src={car.images[0]}
-                  alt={car.name}
-                  loading="lazy"
-                  className="aspect-16/10 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </Link>
-
-              <div className="mt-auto flex items-center justify-between gap-3">
-                <p className="text-lg font-black tracking-tight">
-                  {money(car.pricePerDay)}
-                  <span className="text-dim text-xs font-medium">/day</span>
+        <Slider
+          label="trending vehicles"
+          title={
+            <motion.div {...fadeUp}>
+              <h2 className="text-4xl font-black tracking-[-0.035em] sm:text-5xl">
+                Trend vehicles
+              </h2>
+              <p className="text-dim mt-2">A fresh mix from across the fleet.</p>
+            </motion.div>
+          }
+          action={
+            <LinkButton to="/cars" variant="secondary" size="sm" className="rounded-full">
+              View all
+              <ArrowUpRight className="size-3.5" />
+            </LinkButton>
+          }
+        >
+          {cars.map((car, i) => (
+            <SlideItem key={car.id}>
+              <article
+                className={cx(
+                  'flex h-full flex-col rounded-xl border p-5',
+                  i === 0 ? 'bg-brand-50 dark:bg-brand-950/40' : 'surface-raised',
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-bold tracking-tight">
+                    {car.brand} {car.model}
+                  </h3>
+                  <Rating value={car.rating} />
+                </div>
+                <p className="text-dim mt-0.5 text-xs">
+                  {car.year} · {car.seats} seats · {car.city}
                 </p>
-                <LinkButton to={`/cars/${car.id}`} size="sm" variant="secondary" className="rounded-full">
-                  Book now
-                </LinkButton>
-              </div>
-            </motion.article>
+
+                <Link
+                  to={`/cars/${car.id}`}
+                  className="group my-5 block overflow-hidden rounded-lg"
+                >
+                  <img
+                    src={car.images[0]}
+                    alt={car.name}
+                    loading={i < 4 ? 'eager' : 'lazy'}
+                    className="aspect-16/10 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </Link>
+
+                <div className="mt-auto flex items-center justify-between gap-3">
+                  <p className="text-lg font-black tracking-tight">
+                    {money(car.pricePerDay)}
+                    <span className="text-dim text-xs font-medium">/day</span>
+                  </p>
+                  <LinkButton
+                    to={`/cars/${car.id}`}
+                    size="sm"
+                    variant="secondary"
+                    className="rounded-full"
+                  >
+                    Book now
+                  </LinkButton>
+                </div>
+              </article>
+            </SlideItem>
           ))}
-        </div>
+        </Slider>
       </div>
     </section>
   )

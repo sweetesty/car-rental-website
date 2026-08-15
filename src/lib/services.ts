@@ -163,6 +163,48 @@ export const reviewService = {
   },
 }
 
+/* ── Uploads ── */
+
+export interface UploadedImage {
+  url: string
+  publicId: string
+}
+
+export const uploadService = {
+  /**
+   * Sends the files as multipart/form-data. The Content-Type header is deleted
+   * so the browser sets it itself — it has to append the multipart boundary,
+   * which our JSON default would otherwise clobber.
+   */
+  async carImages(files: File[], onProgress?: (percent: number) => void) {
+    const form = new FormData()
+    for (const file of files) form.append('images', file)
+
+    const { data } = await api.post<{ images: UploadedImage[] }>('/uploads/car-images', form, {
+      headers: { 'Content-Type': undefined },
+      onUploadProgress: (event) => {
+        if (onProgress && event.total) {
+          onProgress(Math.round((event.loaded / event.total) * 100))
+        }
+      },
+    })
+    return data.images
+  },
+
+  async avatar(file: File) {
+    const form = new FormData()
+    form.append('image', file)
+    const { data } = await api.post<UploadedImage>('/uploads/avatar', form, {
+      headers: { 'Content-Type': undefined },
+    })
+    return data
+  },
+
+  async remove(publicId: string) {
+    await api.delete('/uploads', { params: { publicId } })
+  },
+}
+
 /* ── Admin ── */
 
 export const adminService = {

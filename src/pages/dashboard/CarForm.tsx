@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ImagePlus, Info, Trash2 } from 'lucide-react'
+import { ImagePlus, Info, Loader2, Trash2 } from 'lucide-react'
 import { PageHeader } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Misc'
 import { Checkbox, Input, Select, Textarea } from '@/components/ui/Field'
 import { useAuth, useData, useToast } from '@/lib/hooks'
 import { apiError } from '@/lib/api'
-import { addDays, todayISO } from '@/lib/format'
+import { uploadService, type UploadedImage } from '@/lib/services'
+import { addDays, cx, todayISO } from '@/lib/format'
 import {
   BODY_TYPES,
   BRANDS,
@@ -32,12 +33,9 @@ const EMPTY_FEATURES: CarFeatureSet = {
   androidAuto: false,
 }
 
-const SAMPLE_IMAGES = [
-  'https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=1200&q=70',
-  'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=70',
-  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=70',
-  'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=70',
-]
+/** Matches the server's multer limits in uploadRoutes.js. */
+const MAX_IMAGES = 8
+const MAX_FILE_BYTES = 5 * 1024 * 1024
 
 /** Shared by "List a car" and "Edit car" — the `id` param decides which. */
 export default function CarForm() {
@@ -55,6 +53,14 @@ export default function CarForm() {
   const [images, setImages] = useState<string[]>(existing?.images ?? [])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  // Cloudinary ids for images uploaded in this session, so removing one can
+  // delete it remotely instead of orphaning it in the media library.
+  const [uploadedIds, setUploadedIds] = useState<Record<string, string>>({})
 
   // On a deep link into /owner/cars/:id/edit the listing isn't in the store yet,
   // so fetch it and re-seed the form once it lands.
@@ -187,13 +193,61 @@ export default function CarForm() {
     }
   }
 
-  const addSampleImage = () => {
-    const next = SAMPLE_IMAGES.find((src) => !images.includes(src))
-    if (!next) {
-      toast('All sample photos added. Real uploads go through Cloudinary.', 'info')
+  /** Validates client-side first, so obvious rejects never hit the network. */
+  const uploadFiles = async (list: FileList | null) => {
+    if (!list?.length || uploading) return
+
+    const files = Array.from(list)
+    const room = MAX_IMAGES - images.length
+
+    if (room <= 0) {
+      toast(`You can have up to ${MAX_IMAGES} photos. Remove one first.`, 'error')
       return
     }
-    setImages((prev) => [...prev, next])
+
+    const tooBig = files.find((f) => f.size > MAX_FILE_BYTES)
+    if (tooBig) {
+      toast(`"${tooBig.name}" is over 5MB. Compress it or pick another.`, 'error')
+      return
+    }
+
+    const batch = files.slice(0, room)
+    if (batch.length < files.length) {
+      toast(`Only ${room} more photo${room === 1 ? '' : 's'} will fit — uploading those.`, 'info')
+    }
+
+    setUploading(true)
+    setProgress(0)
+    try {
+      const uploaded: UploadedImage[] = await uploadService.carImages(batch, setProgress)
+      setImages((prev) => [...prev, ...uploaded.map((u) => u.url)])
+      setUploadedIds((prev) => ({
+        ...prev,
+        ...Object.fromEntries(uploaded.map((u) => [u.url, u.publicId])),
+      }))
+      setErrors((prev) => ({ ...prev, images: '' }))
+      toast(`${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} uploaded.`)
+    } catch (error) {
+      toast(apiError(error, 'Upload failed.'), 'error')
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }
+
+  const removeImage = (src: string) => {
+    setImages((prev) => prev.filter((s) => s !== src))
+    const publicId = uploadedIds[src]
+    if (publicId) {
+      // Fire and forget: the listing edit matters more than a stray file, and
+      // Cloudinary's free tier has room to spare if this ever fails.
+      void uploadService.remove(publicId).catch(() => {})
+      setUploadedIds((prev) => {
+        const next = { ...prev }
+        delete next[src]
+        return next
+      })
+    }
   }
 
   return (
@@ -358,41 +412,103 @@ export default function CarForm() {
           </div>
         </Section>
 
-        <Section title="Photos" hint="Six or more photos gets roughly 3× the booking requests.">
+        <Section
+          title="Photos"
+          hint="Six or more photos gets roughly 3× the booking requests. The first is the cover."
+        >
           {errors.images && <p className="mb-3 text-xs text-red-600">{errors.images}</p>}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {images.map((src, i) => (
-              <div key={src} className="group relative">
-                <img
-                  src={src}
-                  alt={`Car photo ${i + 1}`}
-                  className="aspect-4/3 w-full rounded-lg border object-cover"
-                />
-                {i === 0 && (
-                  <span className="bg-brand-600 dark:bg-brand-500 dark:text-ink-950 absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
-                    Cover
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setImages((prev) => prev.filter((s) => s !== src))}
-                  aria-label={`Remove photo ${i + 1}`}
-                  className="surface-raised absolute top-2 right-2 grid size-7 place-items-center rounded-full border shadow-lift"
-                >
-                  <Trash2 className="size-3.5 text-red-600" />
-                </button>
-              </div>
-            ))}
 
-            <button
-              type="button"
-              onClick={addSampleImage}
-              className="text-dim hover:border-brand-400 hover:text-brand-600 flex aspect-4/3 flex-col items-center justify-center gap-2 rounded-lg border border-dashed transition-colors"
-            >
-              <ImagePlus className="size-6" />
-              <span className="text-xs font-semibold">Add photo</span>
-            </button>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragging(true)
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragging(false)
+              uploadFiles(e.dataTransfer.files)
+            }}
+            className={cx(
+              'rounded-xl transition-colors',
+              dragging && 'ring-brand-500 bg-brand-50 dark:bg-brand-950/40 ring-2'
+            )}
+          >
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {images.map((src, i) => (
+                <div key={src} className="group relative">
+                  <img
+                    src={src}
+                    alt={`Car photo ${i + 1}`}
+                    className="aspect-4/3 w-full rounded-lg border object-cover"
+                  />
+                  {i === 0 && (
+                    <span className="bg-brand-600 dark:bg-brand-500 dark:text-ink-950 absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
+                      Cover
+                    </span>
+                  )}
+                  {/* Promoting to cover is a reorder, not a re-upload. */}
+                  {i > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImages((prev) => [src, ...prev.filter((s) => s !== src)])
+                      }
+                      className="surface-raised absolute bottom-2 left-2 rounded-full border px-2 py-0.5 text-[10px] font-bold opacity-0 shadow-lift transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                    >
+                      Make cover
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(src)}
+                    aria-label={`Remove photo ${i + 1}`}
+                    className="surface-raised absolute top-2 right-2 grid size-7 place-items-center rounded-full border shadow-lift"
+                  >
+                    <Trash2 className="size-3.5 text-red-600" />
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="text-dim hover:border-brand-400 hover:text-brand-600 flex aspect-4/3 flex-col items-center justify-center gap-2 rounded-lg border border-dashed transition-colors disabled:opacity-60"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="size-6 animate-spin" />
+                    <span className="text-xs font-semibold tabular-nums">{progress}%</span>
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus className="size-6" />
+                    <span className="text-xs font-semibold">Add photos</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            multiple
+            hidden
+            onChange={(e) => {
+              uploadFiles(e.target.files)
+              // Reset so picking the same file twice still fires onChange.
+              e.target.value = ''
+            }}
+          />
+
+          <p className="text-dim mt-3 text-xs">
+            Drag and drop, or click to browse. JPEG, PNG, WebP or AVIF — up to 5MB each,
+            {' '}
+            {MAX_IMAGES} photos total.
+          </p>
         </Section>
 
         <Section title="Description" hint="Be specific — what is this car good for?">

@@ -14,8 +14,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // 5001, not 5000: Windows reserves port 5000 in its excluded TCP range
+      // (netsh interface ipv4 show excludedportrange), so Express can't bind
+      // there and the proxy reaches a system service that answers a bare 403.
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
     },

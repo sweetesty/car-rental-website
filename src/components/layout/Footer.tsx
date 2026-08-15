@@ -77,7 +77,9 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div>
-            <Logo />
+            {/* The emblem gets room to breathe here — in the header it would
+                render at 36px, where the ribbon text turns to mush. */}
+            <Logo variant="badge" size={104} />
             <p className="text-dim mt-4 max-w-xs text-sm leading-relaxed text-pretty">
               Nigeria's peer-to-peer car rental marketplace. Rent from verified owners near you, or
               turn your idle car into monthly income.

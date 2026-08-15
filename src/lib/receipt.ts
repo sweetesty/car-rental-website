@@ -2,6 +2,33 @@ import type { Booking } from './types'
 import { formatDate, money } from './format'
 
 /**
+ * The emblem, inlined as a data URI.
+ *
+ * A plain <img src="/logo.png"> is unreliable here: the print dialog can fire
+ * before the network request finishes, producing a receipt with a blank gap.
+ * Fetching it once and embedding the bytes means it is present the instant the
+ * document is written. Resolves to null when the file isn't there yet, and the
+ * receipt falls back to the text wordmark.
+ */
+let logoPromise: Promise<string | null> | null = null
+
+function loadLogo(): Promise<string | null> {
+  logoPromise ??= fetch('/logo.png')
+    .then((res) => (res.ok ? res.blob() : Promise.reject(new Error('missing'))))
+    .then(
+      (blob) =>
+        new Promise<string | null>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        }),
+    )
+    .catch(() => null)
+  return logoPromise
+}
+
+/**
  * Generates a booking receipt and hands it to the browser's print dialog,
  * where "Save as PDF" is the default destination on every modern browser.
  * Runs entirely client-side — no PDF library, no server round trip.
@@ -9,7 +36,9 @@ import { formatDate, money } from './format'
  * Rendered into a hidden iframe rather than window.open so popup blockers
  * never eat it.
  */
-export function downloadReceipt(booking: Booking) {
+export async function downloadReceipt(booking: Booking) {
+  const logo = await loadLogo()
+
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
   iframe.style.right = '0'
@@ -26,7 +55,7 @@ export function downloadReceipt(booking: Booking) {
   }
 
   doc.open()
-  doc.write(receiptHtml(booking))
+  doc.write(receiptHtml(booking, logo))
   doc.close()
 
   // Give the iframe one frame to lay out before printing.
@@ -41,7 +70,7 @@ export function downloadReceipt(booking: Booking) {
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-function receiptHtml(b: Booking) {
+function receiptHtml(b: Booking, logo: string | null) {
   const rows: [string, string][] = [
     ['Booking reference', b.reference],
     ['Car', b.car ? `${b.car.name}` : '—'],
@@ -73,7 +102,9 @@ function receiptHtml(b: Booking) {
     color: #16181d; padding: 48px; max-width: 640px; margin: 0 auto;
   }
   .head { display: flex; justify-content: space-between; align-items: flex-start;
-    border-bottom: 3px solid #d92c20; padding-bottom: 20px; }
+    border-bottom: 3px solid #d92c20; padding-bottom: 20px; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .emblem { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
   .wordmark { font-size: 24px; font-weight: 900; letter-spacing: -0.04em; }
   .wordmark span { color: #d92c20; }
   .tag { color: #6b7280; font-size: 12px; margin-top: 2px; }
@@ -97,9 +128,12 @@ function receiptHtml(b: Booking) {
 </head>
 <body>
   <div class="head">
-    <div>
-      <div class="wordmark">AUTO<span>GO</span></div>
-      <div class="tag">Peer-to-peer car hire · autogo.ng · support@autogo.ng</div>
+    <div class="brand">
+      ${logo ? `<img class="emblem" src="${logo}" alt="" />` : ''}
+      <div>
+        <div class="wordmark">AUTO<span>GO</span></div>
+        <div class="tag">Peer-to-peer car hire · autogo.ng · support@autogo.ng</div>
+      </div>
     </div>
     <div class="paid">
       <span class="status">${esc(b.paymentStatus)}</span>
