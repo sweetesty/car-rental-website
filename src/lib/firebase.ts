@@ -3,9 +3,11 @@ import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
   type Auth,
@@ -78,10 +80,52 @@ export async function registerWithPassword(email: string, password: string, name
   return credential.user
 }
 
+/**
+ * Google sign-in, popup first and redirect as a fallback.
+ *
+ * Popups are unreliable on mobile: in-app browsers (Instagram, Facebook,
+ * WhatsApp) block them outright, and iOS Safari blocks any popup it decides
+ * wasn't opened directly by a tap. Falling back to a full-page redirect makes
+ * the flow work in those cases — it just returns via getRedirectResult on the
+ * next page load instead of resolving here.
+ */
 export async function signInWithGoogle() {
   if (!auth) throw new Error('Firebase is not configured.')
-  const credential = await signInWithPopup(auth, new GoogleAuthProvider())
-  return credential.user
+
+  const provider = new GoogleAuthProvider()
+  // Always ask which account, rather than silently reusing the last one.
+  provider.setCustomParameters({ prompt: 'select_account' })
+
+  try {
+    const credential = await signInWithPopup(auth, provider)
+    return credential.user
+  } catch (error) {
+    const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : ''
+    const popupUnavailable =
+      code === 'auth/popup-blocked' ||
+      code === 'auth/operation-not-supported-in-this-environment' ||
+      code === 'auth/cancelled-popup-request'
+
+    if (!popupUnavailable) throw error
+
+    // Never resolves — the browser navigates away and comes back signed in.
+    await signInWithRedirect(auth, provider)
+    return null as never
+  }
+}
+
+/**
+ * Completes a redirect sign-in after the browser returns. Safe to call on
+ * every load; resolves to null when there is no redirect in progress.
+ */
+export async function completeRedirectSignIn() {
+  if (!auth) return null
+  try {
+    const credential = await getRedirectResult(auth)
+    return credential?.user ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function firebaseSignOut() {
@@ -99,7 +143,16 @@ const AUTH_MESSAGES: Record<string, string> = {
   'auth/too-many-requests': 'Too many attempts. Try again in a few minutes.',
   'auth/popup-closed-by-user': 'Sign-in was cancelled.',
   'auth/network-request-failed': 'Network problem — check your connection and try again.',
-  'auth/operation-not-allowed': 'Email sign-in is not enabled on this Firebase project.',
+  // Names the console setting to check, rather than saying "email" for what is
+  // usually a disabled Google provider.
+  'auth/operation-not-allowed':
+    'That sign-in method is switched off. Enable it in Firebase → Authentication → Sign-in method.',
+  'auth/unauthorized-domain':
+    'This website address is not on the Firebase authorised domains list.',
+  'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow pop-ups and try again.',
+  'auth/account-exists-with-different-credential':
+    'You already have an account with that email. Sign in with your password instead.',
+  'auth/invalid-api-key': 'The Firebase configuration on this site is invalid.',
 }
 
 export function firebaseError(error: unknown) {

@@ -221,6 +221,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         const firebaseUser = await signInWithGoogle()
+        // Null means the popup was blocked and a full-page redirect started —
+        // the browser is navigating away, so there is nothing to resolve with.
+        // watchAuth picks the session up when it returns.
+        if (!firebaseUser) return null as never
         return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '', role)
       } catch (err) {
         throw new Error(firebaseError(err))
