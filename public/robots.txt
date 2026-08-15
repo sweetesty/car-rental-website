@@ -1,0 +1,13 @@
+# AUTOGO — https://www.autogo.ng
+
+User-agent: *
+Allow: /
+
+# Nothing useful to a search engine, and several require a login anyway.
+Disallow: /account
+Disallow: /owner
+Disallow: /admin
+Disallow: /book
+Disallow: /bookings
+
+Sitemap: https://www.autogo.ng/sitemap.xml

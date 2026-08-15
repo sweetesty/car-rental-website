@@ -37,8 +37,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback(
     (message: string, tone: ToastTone = 'success') => {
       const id = nextId++
-      setToasts((prev) => [...prev, { id, tone, message }])
-      setTimeout(() => dismiss(id), 4500)
+
+      setToasts((prev) => {
+        // Repeating the same message stacks four identical boxes and buries the
+        // page. Drop the duplicate and keep the one already showing.
+        if (prev.some((t) => t.message === message)) return prev
+
+        // Never more than three at once, oldest out first.
+        const next = [...prev, { id, tone, message }]
+        return next.slice(-3)
+      })
+
+      // Errors linger; confirmations can go sooner.
+      setTimeout(() => dismiss(id), tone === 'error' ? 7000 : 4500)
     },
     [dismiss],
   )
@@ -48,9 +59,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
+      {/*
+        Bottom-centre on phones, bottom-right on desktop. Pinned to the right
+        corner it sat where thumbs rest and got missed entirely on mobile;
+        centred, it lands in the natural line of sight. `bottom-20` clears the
+        floating WhatsApp button, which previously overlapped it.
+      */}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed bottom-4 right-4 z-100 flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
+        className="pointer-events-none fixed inset-x-4 bottom-20 z-100 flex flex-col items-center gap-2 sm:inset-x-auto sm:right-4 sm:bottom-4 sm:w-[min(22rem,calc(100vw-2rem))] sm:items-stretch"
       >
         <AnimatePresence initial={false}>
           {toasts.map((t) => {
@@ -63,7 +80,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 24, scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                className="surface-raised pointer-events-auto flex items-start gap-3 rounded-xl border p-3.5 shadow-lift-lg"
+                className="surface-raised pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border-2 p-3.5 shadow-lift-lg"
               >
                 <Icon className={`mt-0.5 size-4.5 shrink-0 ${TONE_CLASS[t.tone]}`} />
                 <p className="flex-1 text-sm leading-snug">{t.message}</p>

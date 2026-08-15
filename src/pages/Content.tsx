@@ -145,8 +145,8 @@ const CHANNELS = [
     icon: Phone,
     title: 'Call us',
     body: '7am–11pm, seven days a week',
-    action: '+234 800 000 0000',
-    href: 'tel:+2348000000000',
+    action: '0707 833 4999',
+    href: 'tel:+2347078334999',
   },
   {
     icon: Mail,
@@ -220,38 +220,60 @@ export function Support() {
 
 /* ── Legal ──────────────────────────────────────────────────────── */
 
+/**
+ * AUTOGO's published terms, taken from the operator's own General Terms and
+ * Conditions. Do not soften or reword these for tone — a customer who reads a
+ * friendlier version here and a stricter one at handover has been misled, and
+ * the published version is the one that will be argued about.
+ */
 const TERMS = [
   {
-    heading: '1. Who we are',
-    body: 'AUTOGO Technologies Ltd operates a marketplace connecting vehicle owners with renters in Nigeria. We are not the owner of any vehicle listed, and we are not a party to the rental agreement between an owner and a renter.',
+    heading: '1. Duration of hire',
+    body: 'A daily hire covers up to 10 hours in the day. Day hire ends at 10:00 PM; any movement after that time counts as night hire and is charged accordingly.',
   },
   {
-    heading: '2. Eligibility',
-    body: 'You must be at least 18 to hold an account and at least the minimum driver age stated on a listing to book it. You must hold a valid licence, held for at least two years, that remains valid for the whole rental period.',
+    heading: '2. Extra hours',
+    body: 'Time used beyond the ten-hour period attracts an hourly rate, which varies by vehicle type. Extra hours are calculated at the end of the hire and charged before the vehicle is released for its next booking.',
   },
   {
-    heading: '3. Bookings and payment',
-    body: 'A booking is formed when payment is authorised and the owner confirms. Prices shown include the rental subtotal, our service fee and insurance. A refundable security deposit is authorised separately at handover.',
+    heading: '3. Night hire',
+    body: 'Night hire is available on request. Charges depend on the vehicle type and the time at which the hire ends, and must be agreed in advance.',
   },
   {
-    heading: '4. Cancellations',
-    body: 'The cancellation window is set per listing and shown before you pay. Cancelling inside the window is refunded in full; outside it, the first rental day is non-refundable. Owners who cancel confirmed bookings without cause may be removed from the platform.',
+    heading: '4. Chauffeur service and fuel',
+    body: 'Fuel and a driver are provided on every hire booked under our company driver service. Self-fuelling options are available on request and are priced separately.',
   },
   {
-    heading: '5. Owner obligations',
-    body: 'Owners warrant that each listed vehicle is legally owned or lawfully controlled by them, roadworthy, correctly registered, and covered by a valid comprehensive insurance policy for the whole listed period.',
+    heading: '5. Refunds and cancellation',
+    body: 'Once a vehicle is reserved, no refund is issued on cancellation. A change of date attracts a charge of 30% of the total hire fee. Please be certain of your dates before reserving.',
   },
   {
-    heading: '6. Renter obligations',
-    body: 'Renters must return the vehicle at the agreed time and place, in the condition it was collected, and only allow named drivers to operate it. Traffic offences, tolls and fines incurred during the rental remain the renter’s responsibility.',
+    heading: '6. Area of use',
+    body: 'All rental vehicles are for use within the Abuja metropolis only. Taking a vehicle outside Abuja requires prior written approval and attracts additional charges.',
   },
   {
-    heading: '7. Liability',
-    body: 'Our liability is limited to the total fees you paid us for the booking in question. Nothing in these terms excludes liability that cannot lawfully be excluded.',
+    heading: '7. Interstate trips',
+    body: 'Interstate travel is available on request. Rates vary by destination and vehicle, and are quoted before the booking is confirmed.',
   },
   {
-    heading: '8. Changes',
-    body: 'We may update these terms. Material changes will be notified by email at least 14 days before they take effect.',
+    heading: '8. Conduct',
+    body: 'Smoking inside our vehicles is not permitted. Abusive or inappropriate behaviour towards our drivers or staff will end the hire without refund.',
+  },
+  {
+    heading: '9. Self-drive: fuel',
+    body: 'On self-drive hires the customer is responsible for fuelling the vehicle throughout the rental period.',
+  },
+  {
+    heading: '10. Self-drive: security deposit',
+    body: 'A refundable security deposit is required before the vehicle is collected. The amount depends on the vehicle type and value. It is returned after the vehicle has been inspected and found in good condition.',
+  },
+  {
+    heading: '11. Self-drive: responsibility and liability',
+    body: 'On a self-drive hire the customer is fully responsible for any damage, accident, loss or third-party liability incurred during the rental period.',
+  },
+  {
+    heading: '12. Customer requirements',
+    body: 'All customers must present valid government-issued identification. Self-drive customers must additionally provide a valid driver’s licence and meet our qualification requirements before a vehicle is released.',
   },
 ]
 

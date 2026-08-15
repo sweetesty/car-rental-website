@@ -8,6 +8,7 @@ import { VerificationBadge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Misc'
 import { useAuth, useToast } from '@/lib/hooks'
 import { apiError } from '@/lib/api'
+import { firebaseError, isGoogleAccount, sendPasswordReset } from '@/lib/firebase'
 import { formatDate, titleCase } from '@/lib/format'
 
 const KYC_STEPS = [
@@ -35,6 +36,31 @@ export default function Profile() {
   const [form, setForm] = useState({ name: user?.name ?? '', phone: user?.phone ?? '' })
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  /**
+   * Sends a real Firebase password-reset email. This previously only showed a
+   * toast claiming a link had been sent, so anyone who clicked it waited for
+   * an email that was never going to arrive.
+   */
+  const resetPassword = async () => {
+    if (!user?.email) return
+
+    if (isGoogleAccount()) {
+      toast('You sign in with Google, so there is no AUTOGO password to reset.', 'info')
+      return
+    }
+
+    setResetting(true)
+    try {
+      await sendPasswordReset(user.email)
+      toast(`Reset link sent to ${user.email}. Check your inbox and spam folder.`)
+    } catch (error) {
+      toast(firebaseError(error), 'error')
+    } finally {
+      setResetting(false)
+    }
+  }
 
   if (!user) return null
 
@@ -172,18 +198,16 @@ export default function Profile() {
                 variant="secondary"
                 size="sm"
                 fullWidth
-                onClick={() => toast('Password reset link sent to your email.')}
+                loading={resetting}
+                onClick={resetPassword}
               >
                 Change password
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                fullWidth
-                onClick={() => toast('Two-factor authentication coming soon.', 'info')}
-              >
-                Enable two-factor auth
-              </Button>
+              {/* Deliberately plain text, not a button. A control that only
+                  says "coming soon" invites a click and then disappoints. */}
+              <p className="text-dim pt-1 text-xs">
+                Two-factor authentication is not available yet.
+              </p>
             </div>
           </Card>
         </aside>

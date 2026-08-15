@@ -6,30 +6,92 @@
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="theme-color" content="#d92c20" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Canonical, so Google indexes one address rather than treating the
+         apex, www and any query-string variants as separate pages. -->
+    <link rel="canonical" href="https://www.autogo.ng/" />
+
+    <title>AUTOGO — Car Rental &amp; Car Hire in Abuja</title>
     <meta
       name="description"
-      content="AUTOGO — rent a car from trusted owners near you, or list your own and start earning."
+      content="Rent a car in Abuja with AUTOGO. Chauffeur-driven hire with fuel and driver included, or self-drive with a refundable deposit. Verified vehicles, honest pricing, same-day booking."
     />
-    <title>AUTOGO — Rent a car, anywhere</title>
+
+    <!-- Preconnect to the image host so car photos start downloading sooner. -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+
+    <!-- Open Graph: controls the preview when the link is shared on WhatsApp,
+         Instagram, Facebook or X. Without these the share shows a bare URL. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AUTOGO" />
+    <meta property="og:url" content="https://www.autogo.ng/" />
+    <meta property="og:title" content="AUTOGO — Car Rental &amp; Car Hire in Abuja" />
+    <meta
+      property="og:description"
+      content="Ride with class, arrive with confidence. Chauffeur-driven and self-drive car hire across Abuja."
+    />
+    <meta property="og:image" content="https://www.autogo.ng/logo.png" />
+    <meta property="og:locale" content="en_NG" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AUTOGO — Car Rental &amp; Car Hire in Abuja" />
+    <meta
+      name="twitter:description"
+      content="Ride with class, arrive with confidence. Chauffeur-driven and self-drive car hire across Abuja."
+    />
+    <meta name="twitter:image" content="https://www.autogo.ng/logo.png" />
+
+    <!--
+      Structured data. This is what lets Google show the business with its
+      address, phone and opening hours rather than a plain blue link, and it
+      feeds Maps and the local pack — the results that actually matter for
+      "car hire Abuja".
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "AutoRental",
+        "name": "AUTOGO Car Rentals",
+        "alternateName": "AUTOGO",
+        "description": "Car rental and car hire in Abuja. Chauffeur-driven hire with driver and fuel included, or self-drive with a refundable security deposit.",
+        "url": "https://www.autogo.ng",
+        "logo": "https://www.autogo.ng/logo.png",
+        "image": "https://www.autogo.ng/logo.png",
+        "telephone": "+2347078334999",
+        "email": "support@autogo.ng",
+        "priceRange": "₦₦",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "52 Nile Street, Maitama",
+          "addressLocality": "Abuja",
+          "addressRegion": "Federal Capital Territory",
+          "addressCountry": "NG"
+        },
+        "areaServed": {
+          "@type": "City",
+          "name": "Abuja"
+        },
+        "openingHoursSpecification": {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "07:00",
+          "closes": "22:00"
+        },
+        "sameAs": ["https://www.instagram.com/auto_go_car_rental"]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // DEBUG: Find overflowing elements and outline them in red
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          const docWidth = document.documentElement.clientWidth;
-          document.querySelectorAll('*').forEach((el) => {
-            const rect = el.getBoundingClientRect();
-            if (rect.right > docWidth && el.tagName !== 'HTML' && el.tagName !== 'BODY' && el.tagName !== 'SCRIPT') {
-              console.log('OVERFLOWING ELEMENT:', el.tagName, el.className);
-              el.style.outline = '5px solid red';
-              el.style.outlineOffset = '-5px';
-            }
-          });
-        }, 1000);
-      });
-    </script>
   </body>
 </html>

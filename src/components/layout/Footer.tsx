@@ -59,7 +59,11 @@ const COLUMNS = [
 
 const SOCIALS = [
   { href: 'https://twitter.com', label: 'AUTOGO on X', icon: XMark },
-  { href: 'https://instagram.com', label: 'AUTOGO on Instagram', icon: InstagramMark },
+  {
+    href: 'https://www.instagram.com/auto_go_car_rental',
+    label: 'AUTOGO on Instagram',
+    icon: InstagramMark,
+  },
   { href: 'https://facebook.com', label: 'AUTOGO on Facebook', icon: FacebookMark },
 ]
 
@@ -107,12 +111,12 @@ export function Footer() {
             <ul className="text-dim mt-6 space-y-2.5 text-sm">
               <li className="flex items-center gap-2.5">
                 <MapPin className="size-4 shrink-0" />
-                12 Admiralty Way, Lekki Phase 1, Lagos
+                52 Nile Street, Maitama, Abuja
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="size-4 shrink-0" />
-                <a href="tel:+2348000000000" className="hover:text-brand-600">
-                  +234 800 000 0000
+                <a href="tel:+2347078334999" className="hover:text-brand-600">
+                  0707 833 4999
                 </a>
               </li>
               <li className="flex items-center gap-2.5">

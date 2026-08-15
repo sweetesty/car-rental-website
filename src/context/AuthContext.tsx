@@ -1,7 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Role, User } from '@/lib/types'
 import { authService } from '@/lib/services'
-import { isApiUnavailable, setUnauthorizedHandler } from '@/lib/api'
+import { isApiUnavailable, setResyncHandler, setUnauthorizedHandler } from '@/lib/api'
 import {
   firebaseConfigured,
   firebaseError,
@@ -85,6 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => persist(null))
+
+    // Lets the API layer repair a valid Firebase session that has no local
+    // account record — it creates one and replays the failed request, instead
+    // of showing the user an error they can do nothing about.
+    setResyncHandler(async () => {
+      const synced = await authService.sync()
+      persist(synced)
+      return synced
+    })
+
+    return () => setResyncHandler(null)
   }, [persist])
 
   /** Restores a demo session across reloads; Firebase restores its own. */

@@ -1,6 +1,6 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowUpRight,
   CalendarDays,
@@ -42,21 +42,89 @@ const fadeUp = {
 const HERO_IMAGE =
   'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=1920&q=75'
 
-export function ShowroomHero() {
+/** Seconds each hero slide holds before cross-fading to the next. */
+const SLIDE_SECONDS = 6
+
+export function ShowroomHero({ cars = [] }: { cars?: Car[] }) {
+  const reduced = useReducedMotion()
+
+  /**
+   * Slides come from the live fleet, so the hero always advertises cars that
+   * are genuinely bookable. Falls back to the showroom shot before the API
+   * answers, and de-duplicates so the same photo never appears twice.
+   */
+  const slides = useMemo(() => {
+    const fromFleet = cars
+      .filter((c) => c.status === 'approved' && c.images[0])
+      .slice(0, 5)
+      .map((c) => ({ src: c.images[0], alt: `${c.name} available to hire` }))
+
+    const unique = [...new Map(fromFleet.map((s) => [s.src, s])).values()]
+    return unique.length > 0
+      ? unique
+      : [{ src: HERO_IMAGE, alt: 'A car in a dark showroom' }]
+  }, [cars])
+
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    // One slide, or a visitor who asked for less motion: hold the first frame.
+    if (slides.length < 2 || reduced) return
+    const id = setInterval(
+      () => setIndex((i) => (i + 1) % slides.length),
+      SLIDE_SECONDS * 1000,
+    )
+    return () => clearInterval(id)
+  }, [slides.length, reduced])
+
+  // Guards against an out-of-range index if the fleet shrinks mid-rotation.
+  const safeIndex = index % slides.length
+
   return (
     <section className="relative">
       <div className="relative h-[30rem] overflow-hidden sm:h-[36rem]">
-        <img
-          src={HERO_IMAGE}
-          alt="A car in a dark showroom"
-          fetchPriority="high"
-          className="absolute inset-0 size-full object-cover"
-        />
+        {/* Cross-fade: all slides stacked, only the active one at full opacity.
+            Keeping them mounted means the next image is already decoded, so
+            the transition never flashes an empty frame. */}
+        {slides.map((slide, i) => (
+          <img
+            key={slide.src}
+            src={slide.src}
+            alt={i === safeIndex ? slide.alt : ''}
+            aria-hidden={i !== safeIndex}
+            fetchPriority={i === 0 ? 'high' : 'low'}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            className={cx(
+              'absolute inset-0 size-full object-cover transition-opacity duration-1000 ease-out',
+              i === safeIndex ? 'opacity-100' : 'opacity-0',
+            )}
+          />
+        ))}
+
         {/* Darkened top and bottom so both text blocks sit on quiet ground. */}
         <div
           aria-hidden
           className="from-ink-950/85 via-ink-950/25 to-ink-950/45 absolute inset-0 bg-gradient-to-t"
         />
+
+        {/* Progress dots — also a control, so nobody has to wait for a rotation. */}
+        {slides.length > 1 && (
+          <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-2 sm:bottom-8">
+            {slides.map((slide, i) => (
+              <button
+                key={slide.src}
+                type="button"
+                onClick={() => setIndex(i)}
+                aria-label={`Show car ${i + 1} of ${slides.length}`}
+                aria-current={i === safeIndex}
+                className={cx(
+                  'h-1.5 rounded-full transition-all duration-300',
+                  i === safeIndex ? 'bg-accent-500 w-8' : 'w-4 bg-white/45 hover:bg-white/70',
+                )}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="absolute inset-x-0 bottom-0 pb-28 sm:pb-32">
           <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8">

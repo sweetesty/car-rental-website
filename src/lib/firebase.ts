@@ -6,6 +6,7 @@ import {
   getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -130,6 +131,23 @@ export async function completeRedirectSignIn() {
 
 export async function firebaseSignOut() {
   if (auth) await signOut(auth)
+}
+
+/**
+ * Sends a genuine password-reset email via Firebase.
+ *
+ * Firebase sends and hosts the reset page itself — nothing to build, and the
+ * link is single-use and time-limited. Accounts created through Google have no
+ * password to reset, so the caller should say so rather than send nothing.
+ */
+export async function sendPasswordReset(email: string) {
+  if (!auth) throw new Error('Firebase is not configured.')
+  await sendPasswordResetEmail(auth, email)
+}
+
+/** True when the signed-in account uses Google rather than a password. */
+export function isGoogleAccount() {
+  return auth?.currentUser?.providerData.some((p) => p.providerId === 'google.com') ?? false
 }
 
 /** Firebase error codes are machine-readable; users need sentences. */

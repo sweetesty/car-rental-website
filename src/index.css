@@ -103,16 +103,18 @@
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
 
-    /* `clip` ONLY — never `hidden`.
+    /* REVERTED to `hidden` deliberately.
      *
-     * overflow:hidden on html/body turns them into scroll containers, which
-     * silently disables position:sticky for every descendant: the header stops
-     * following the page on mobile. `clip` prevents sideways scrolling without
-     * creating a scroll container, so sticky survives.
+     * `clip` is the technically better choice — it stops sideways scrolling
+     * without creating a scroll container, so position:sticky keeps working.
+     * But on this site it did not hold: the overflow came back on mobile.
      *
-     * Pre-16 Safari ignores `clip`, so it is not a complete guard there — the
-     * real defence is that no element is wider than the viewport, which is
-     * enforced at the components themselves. */
+     * `hidden` does stop it, at the cost of disabling sticky on descendants,
+     * so the header no longer follows the page. That trade is intentional
+     * until the element that actually overhangs is found — a page that slides
+     * sideways into blank space is worse than a header that scrolls away.
+     *
+     * The sticky header is restored by removing these two declarations. */
     overflow-x: hidden;
     position: relative;
     width: 100%;

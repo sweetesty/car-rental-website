@@ -61,7 +61,7 @@ export default function Home() {
 
   return (
     <>
-      <ShowroomHero />
+      <ShowroomHero cars={trending} />
       <CarCategory cars={cars} loading={loading} />
       <TrendVehicles cars={trending} loading={loading} />
       <PerksStrip />

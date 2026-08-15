@@ -32,7 +32,20 @@ export const setUnauthorizedHandler = (fn: UnauthorizedHandler) => {
   onUnauthorized = fn
 }
 
+/**
+ * Creates the local user record for a valid Firebase session that has none.
+ *
+ * Registered by AuthContext rather than imported, because services.ts imports
+ * this module — calling it directly would be a circular import.
+ */
+type ResyncHandler = (() => Promise<unknown>) | null
+let onNeedsResync: ResyncHandler = null
+export const setResyncHandler = (fn: ResyncHandler) => {
+  onNeedsResync = fn
+}
+
 let retriedOnce = false
+let resyncing = false
 
 api.interceptors.response.use(
   (response) => response,
@@ -60,6 +73,24 @@ api.interceptors.response.use(
       onUnauthorized()
     }
 
+    /*
+     * 409 means the Firebase session is valid but no local account exists yet
+     * — usually because the first sync failed while the API was unreachable.
+     * Create the record and replay, rather than showing the user an error they
+     * cannot possibly act on.
+     */
+    if (status === 409 && config && onNeedsResync && !resyncing) {
+      resyncing = true
+      try {
+        await onNeedsResync()
+        return await api.request(config)
+      } catch {
+        // Fall through and surface the original failure.
+      } finally {
+        resyncing = false
+      }
+    }
+
     return Promise.reject(error)
   },
 )
@@ -69,7 +100,9 @@ const STATUS_MESSAGES: Record<number, string> = {
   401: 'Your session has expired. Please sign in again.',
   403: 'The AUTOGO API refused that request. If the server is running, check that you are signed in with the right account.',
   404: "That endpoint doesn't exist on the API — the server may be running an older version.",
-  409: 'That conflicts with an existing booking.',
+  // Recovered automatically by the interceptor above; if the user still sees
+  // this, the resync itself failed and signing in again is the way out.
+  409: 'We could not finish setting up your account. Please sign out and sign in again.',
   429: 'Too many requests. Give it a moment and try again.',
   503: 'That service is not configured on the server yet.',
 }
