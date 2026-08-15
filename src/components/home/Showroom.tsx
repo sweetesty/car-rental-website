@@ -104,17 +104,33 @@ function RateSearch() {
   const [rate, setRate] = useState<RateId>('daily')
   const [city, setCity] = useState('')
   const [startDate, setStartDate] = useState(addDays(todayISO(), 1))
+  const [endDate, setEndDate] = useState(addDays(todayISO(), 1))
 
-  // The tab picks the rental length; the range lands pre-filled on /cars.
-  const days = RATES.find((r) => r.id === rate)?.days ?? 1
-  const endDate = addDays(startDate, days - 1)
+  const daysFor = (id: RateId) => RATES.find((r) => r.id === id)?.days ?? 1
+
+  /**
+   * The tabs are presets, not a constraint. Picking one fills the return date
+   * in; editing the return date afterwards is allowed and simply overrides it.
+   * It was previously derived and read-only, which made it look like a field
+   * you could click while quietly ignoring you.
+   */
+  const chooseRate = (id: RateId) => {
+    setRate(id)
+    setEndDate(addDays(startDate, daysFor(id) - 1))
+  }
+
+  const changeStart = (value: string) => {
+    setStartDate(value)
+    // Keep the range valid: a return before pickup is nonsense, so drag it along.
+    if (value > endDate) setEndDate(addDays(value, daysFor(rate) - 1))
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
     if (city) params.set('city', city)
     params.set('startDate', startDate)
-    params.set('endDate', endDate)
+    params.set('endDate', endDate < startDate ? startDate : endDate)
     navigate(`/cars?${params}`)
   }
 
@@ -134,7 +150,7 @@ function RateSearch() {
               type="button"
               role="tab"
               aria-selected={rate === r.id}
-              onClick={() => setRate(r.id)}
+              onClick={() => chooseRate(r.id)}
               className={cx(
                 'rounded-full px-5 py-1.5 text-sm font-semibold transition-colors',
                 rate === r.id
@@ -170,15 +186,22 @@ function RateSearch() {
             type="date"
             value={startDate}
             min={todayISO()}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => changeStart(e.target.value)}
             aria-label="Pick-up date"
-            className="w-full min-w-0 bg-transparent text-sm font-semibold outline-none"
+            className="w-full min-w-0 cursor-pointer bg-transparent text-sm font-semibold outline-none"
           />
         </Field>
 
         <Field icon={CalendarDays} label="Return date">
-          {/* Derived from the rate tab, so it can't disagree with it. */}
-          <p className="text-sm font-semibold">{endDate}</p>
+          <input
+            type="date"
+            value={endDate}
+            // Can't return before you collect it.
+            min={startDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            aria-label="Return date"
+            className="w-full min-w-0 cursor-pointer bg-transparent text-sm font-semibold outline-none"
+          />
         </Field>
 
         <div className="p-1 lg:pl-3">

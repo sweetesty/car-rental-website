@@ -78,7 +78,7 @@ export function Logo({
         <>
           <WordmarkTile />
           {!compact && (
-            <span className="text-[1.375rem] leading-none font-black tracking-[-0.05em]">
+            <span className="hidden sm:inline-block text-[1.375rem] leading-none font-black tracking-[-0.05em]">
               AUTO<span className="text-accent-600 dark:text-accent-400">GO</span>
             </span>
           )}
