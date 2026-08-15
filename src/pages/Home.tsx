@@ -42,7 +42,7 @@ function diversify(cars: Car[]): Car[] {
  * (how it works, why us, FAQ) has its own page a click away.
  */
 export default function Home() {
-  const { cars } = useData()
+  const { cars, loading } = useData()
 
   const live = useMemo(() => cars.filter((c) => c.status === 'approved'), [cars])
 
@@ -62,8 +62,8 @@ export default function Home() {
   return (
     <>
       <ShowroomHero />
-      <CarCategory cars={cars} />
-      <TrendVehicles cars={trending} />
+      <CarCategory cars={cars} loading={loading} />
+      <TrendVehicles cars={trending} loading={loading} />
       <PerksStrip />
       <PromoBanner cars={cars} />
     </>

@@ -82,7 +82,11 @@ export function Header() {
       )}
       style={{ backgroundColor: scrolled ? 'color-mix(in oklab, var(--surface) 88%, transparent)' : 'var(--surface)' }}
     >
-      {demo ? (
+      {/* The demo notice is a development aid and must never reach customers,
+          so it is gated on the dev build. In production a failure shows the
+          plain-language banner — and only after loading has actually finished,
+          so a slow first request renders as skeletons, not as an outage. */}
+      {demo && import.meta.env.DEV ? (
         <DemoBanner onRetry={refresh} />
       ) : error && !loading ? (
         <ReconnectingBanner onRetry={refresh} />

@@ -232,7 +232,27 @@ const BODY_LABELS: Record<Car['bodyType'], string> = {
  * drawn from a car that IS one. Body type is also what renters actually filter
  * by ("I need seven seats"), so it earns its place twice over.
  */
-export function CarCategory({ cars }: { cars: Car[] }) {
+/** Placeholder tile matching a category card's shape, shown while loading. */
+function CategorySkeleton() {
+  return <div className="skeleton aspect-4/5 w-full rounded-xl" />
+}
+
+/** Placeholder matching a vehicle card, shown while loading. */
+function VehicleSkeleton() {
+  return (
+    <div className="surface-raised flex h-full flex-col rounded-xl border p-5">
+      <div className="skeleton h-5 w-2/3 rounded" />
+      <div className="skeleton mt-2 h-3 w-1/2 rounded" />
+      <div className="skeleton my-5 aspect-16/10 w-full rounded-lg" />
+      <div className="mt-auto flex items-center justify-between gap-3">
+        <div className="skeleton h-6 w-24 rounded" />
+        <div className="skeleton h-8 w-24 rounded-full" />
+      </div>
+    </div>
+  )
+}
+
+export function CarCategory({ cars, loading = false }: { cars: Car[]; loading?: boolean }) {
   const categories = useMemo(() => {
     const grouped = new Map<Car['bodyType'], { count: number; image: string }>()
 
@@ -250,7 +270,9 @@ export function CarCategory({ cars }: { cars: Car[] }) {
       .sort((a, b) => b.count - a.count)
   }, [cars])
 
-  if (categories.length === 0) return null
+  // Hide the section entirely only once we know there is genuinely nothing —
+  // during loading we show placeholders so the page keeps its shape.
+  if (!loading && categories.length === 0) return null
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
@@ -269,6 +291,13 @@ export function CarCategory({ cars }: { cars: Car[] }) {
           </LinkButton>
         }
       >
+        {loading &&
+          Array.from({ length: 4 }, (_, i) => (
+            <SlideItem key={`skeleton-${i}`}>
+              <CategorySkeleton />
+            </SlideItem>
+          ))}
+
         {categories.map((cat, i) => (
           <SlideItem key={cat.bodyType}>
             <Link
@@ -315,8 +344,8 @@ export function CarCategory({ cars }: { cars: Car[] }) {
 
 /* ── Trend vehicles ── */
 
-export function TrendVehicles({ cars }: { cars: Car[] }) {
-  if (cars.length === 0) return null
+export function TrendVehicles({ cars, loading = false }: { cars: Car[]; loading?: boolean }) {
+  if (!loading && cars.length === 0) return null
 
   return (
     <section className="surface-sunken border-y">
@@ -338,6 +367,13 @@ export function TrendVehicles({ cars }: { cars: Car[] }) {
             </LinkButton>
           }
         >
+          {loading &&
+            Array.from({ length: 4 }, (_, i) => (
+              <SlideItem key={`skeleton-${i}`}>
+                <VehicleSkeleton />
+              </SlideItem>
+            ))}
+
           {cars.map((car, i) => (
             <SlideItem key={car.id}>
               <article
