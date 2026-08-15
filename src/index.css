@@ -114,11 +114,16 @@
      * real defence is that no element is wider than the viewport, which is
      * enforced at the components themselves. */
     overflow-x: hidden;
+    position: relative;
+    width: 100%;
   }
 
   body {
+    margin: 0;
     max-width: 100%;
+    width: 100%;
     overflow-x: hidden;
+    position: relative;
     overscroll-behavior-x: none;
   }
 
