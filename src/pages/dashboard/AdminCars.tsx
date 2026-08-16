@@ -38,7 +38,10 @@ export default function AdminCars() {
   const [tab, setTab] = useState<Tab>('pending')
   const [inspecting, setInspecting] = useState<Car | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Car | null>(null)
-  const [busy, setBusy] = useState(false)
+  // Which decision is running, not just that one is — a shared boolean spun
+  // both buttons at once, so approving looked like it was also rejecting.
+  const [busy, setBusy] = useState<ListingStatus | null>(null)
+  const [deleting, setDeleting] = useState(false)
   // Blank means "use the platform default" — distinct from 0, which is a real
   // zero-commission listing.
   const [commission, setCommission] = useState('')
@@ -71,7 +74,7 @@ export default function AdminCars() {
     message: string,
     fromModal = false,
   ) => {
-    setBusy(true)
+    setBusy(status)
     try {
       const rate = fromModal
         ? commission.trim() === ''
@@ -115,7 +118,7 @@ export default function AdminCars() {
     } catch (err) {
       toast(apiError(err), 'error')
     } finally {
-      setBusy(false)
+      setBusy(null)
     }
   }
 
@@ -266,13 +269,19 @@ export default function AdminCars() {
             <>
               <Button
                 variant="danger"
-                loading={busy}
-                onClick={() => decide(inspecting, 'rejected', `${inspecting.name} was rejected.`)}
+                loading={busy === 'rejected'}
+                // Don't leave the other decision clickable while one is in
+                // flight — two verdicts on one listing would race.
+                disabled={busy === 'approved'}
+                onClick={() =>
+                  decide(inspecting, 'rejected', `${inspecting.name} was rejected.`, true)
+                }
               >
                 Reject
               </Button>
               <Button
-                loading={busy}
+                loading={busy === 'approved'}
+                disabled={busy === 'rejected'}
                 onClick={() =>
                   decide(inspecting, 'approved', `${inspecting.name} is now live.`, true)
                 }
@@ -433,10 +442,10 @@ export default function AdminCars() {
             </Button>
             <Button
               variant="danger"
-              loading={busy}
+              loading={deleting}
               onClick={async () => {
                 if (!pendingDelete) return
-                setBusy(true)
+                setDeleting(true)
                 try {
                   await deleteCar(pendingDelete.id)
                   toast(`${pendingDelete.name} deleted.`)
@@ -444,7 +453,7 @@ export default function AdminCars() {
                 } catch (err) {
                   toast(apiError(err), 'error')
                 } finally {
-                  setBusy(false)
+                  setDeleting(false)
                 }
               }}
             >

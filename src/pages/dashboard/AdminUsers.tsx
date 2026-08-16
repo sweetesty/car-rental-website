@@ -32,7 +32,9 @@ export default function AdminUsers() {
   const [review, setReview] = useState<KycReview | null>(null)
   const [loadingReview, setLoadingReview] = useState(false)
   const [reason, setReason] = useState('')
-  const [deciding, setDeciding] = useState(false)
+  // Which decision is in flight, not merely whether one is — a shared boolean
+  // put a spinner on both buttons, so it looked like the reject was running too.
+  const [deciding, setDeciding] = useState<'verified' | 'rejected' | null>(null)
 
   // Approval requires the full set — a missing licence is not an identity you
   // have checked.
@@ -60,7 +62,7 @@ export default function AdminUsers() {
       return
     }
 
-    setDeciding(true)
+    setDeciding(verification === 'verified' ? 'verified' : 'rejected')
     try {
       await setUserVerification(reviewing.id, verification, reason.trim() || undefined)
       toast(
@@ -73,19 +75,44 @@ export default function AdminUsers() {
     } catch (err) {
       toast(apiError(err), 'error')
     } finally {
-      setDeciding(false)
+      setDeciding(null)
     }
   }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return users.filter((u) => {
+
+    const matches = users.filter((u) => {
       if (tab === 'customer' || tab === 'owner') {
         if (u.role !== (tab as Role)) return false
       }
       if (tab === 'flagged' && u.status === 'active' && u.verification !== 'pending') return false
       if (q && !`${u.name} ${u.email}`.toLowerCase().includes(q)) return false
       return true
+    })
+
+    /*
+     * This table is a work queue, so it sorts by what needs doing.
+     *
+     * Anyone waiting on a verification decision comes first — they were at the
+     * bottom before, under every account that had already been dealt with, so
+     * a new submission was easy to miss entirely. Rejected accounts follow,
+     * since they may re-submit.
+     *
+     * Within the pending group the longest wait is at the top: someone who
+     * submitted three days ago should not be overtaken by a signup from this
+     * morning. Everywhere else, newest first.
+     */
+    const rank = (u: User) =>
+      u.verification === 'pending' ? 0 : u.verification === 'rejected' ? 1 : 2
+
+    return [...matches].sort((a, b) => {
+      const byRank = rank(a) - rank(b)
+      if (byRank !== 0) return byRank
+
+      const aTime = new Date(a.createdAt).getTime()
+      const bTime = new Date(b.createdAt).getTime()
+      return rank(a) === 0 ? aTime - bTime : bTime - aTime
     })
   }, [users, tab, query])
 
@@ -271,12 +298,19 @@ export default function AdminUsers() {
         footer={
           reviewing && (
             <>
-              <Button variant="danger" loading={deciding} onClick={() => decide('rejected')}>
+              <Button
+                variant="danger"
+                loading={deciding === 'rejected'}
+                // The other decision being in flight shouldn't leave this one
+                // clickable — two decisions on one account would race.
+                disabled={deciding === 'verified'}
+                onClick={() => decide('rejected')}
+              >
                 Reject
               </Button>
               <Button
-                loading={deciding}
-                disabled={!hasAllDocuments}
+                loading={deciding === 'verified'}
+                disabled={!hasAllDocuments || deciding === 'rejected'}
                 onClick={() => decide('verified')}
               >
                 Approve verification

@@ -79,7 +79,9 @@ export default function Login() {
     setError('')
     setGoogleBusy(true)
     try {
-      land(await loginWithGoogle())
+      // Same "Keep me signed in" choice as the password form — the checkbox
+      // sits above both buttons and has to mean the same thing for each.
+      land(await loginWithGoogle(undefined, remember))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed.')
     } finally {

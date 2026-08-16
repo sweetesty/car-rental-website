@@ -29,7 +29,7 @@ interface AuthValue {
    * the register page can therefore produce an owner, while signing in from
    * the login page leaves an existing account's role untouched.
    */
-  loginWithGoogle: (role?: 'customer' | 'owner') => Promise<User>
+  loginWithGoogle: (role?: 'customer' | 'owner', keepSignedIn?: boolean) => Promise<User>
   register: (input: RegisterInput) => Promise<User>
   logout: () => void
   /** Resolves with the saved record, so callers can react to a derived status. */
@@ -256,7 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const loginWithGoogle = useCallback(
-    async (role?: 'customer' | 'owner') => {
+    async (role?: 'customer' | 'owner', keepSignedIn = true) => {
       if (!firebaseConfigured) {
         throw new Error('Google sign-in needs Firebase configured. Use a demo account for now.')
       }
@@ -267,6 +267,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        /*
+         * Must happen before the credential exchange, exactly as on the
+         * password path — Firebase applies persistence at the moment it signs
+         * you in. Without this, Google sign-in always used the default
+         * (stay signed in), so unticking the box on a shared phone did
+         * nothing at all.
+         *
+         * Set before the redirect fallback too: Firebase remembers the choice
+         * across the full-page navigation.
+         */
+        await setSessionPersistence(keepSignedIn)
+
         const firebaseUser = await signInWithGoogle()
         // Null means the popup was blocked and a full-page redirect started —
         // the browser is navigating away, so there is nothing to resolve with.
