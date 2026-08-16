@@ -53,7 +53,11 @@ interface DataValue {
 
   createCar: (car: Car) => Promise<Car>
   saveCar: (id: string, car: Car) => Promise<Car>
-  setCarStatus: (id: string, status: ListingStatus) => Promise<void>
+  setCarStatus: (
+    id: string,
+    status: ListingStatus,
+    commissionPercent?: number | null,
+  ) => Promise<void>
   setCarAvailability: (id: string, unavailableDates: string[]) => Promise<void>
   deleteCar: (id: string) => Promise<void>
 
@@ -303,15 +307,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const setCarStatus = useCallback(
-    async (id: string, status: ListingStatus) => {
+    async (id: string, status: ListingStatus, commissionPercent?: number | null) => {
       if (demo) {
-        patchCarLocal(id, { status })
+        patchCarLocal(id, {
+          status,
+          ...(commissionPercent !== undefined ? { commissionPercent } : {}),
+        })
         return
       }
-      // Admins go through the moderation endpoint; owners through their own car.
+      // Admins go through the moderation endpoint; owners through their own
+      // car. Only the admin route accepts a commission — an owner setting the
+      // platform's own cut would be an obvious conflict of interest.
       const updated =
         user?.role === 'admin'
-          ? await adminService.setCarStatus(id, status)
+          ? await adminService.setCarStatus(id, status, commissionPercent)
           : await carService.patch(id, { status })
       upsertCar(updated)
     },

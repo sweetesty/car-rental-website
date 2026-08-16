@@ -12,6 +12,17 @@ import { daysBetween } from './format'
 export let SERVICE_FEE_RATE = 0.1
 export let INSURANCE_FEE_PER_DAY = 3500
 
+/**
+ * The commission on a given car. An admin can set it per listing; unset falls
+ * back to the platform rate. Mirrors commissionRateFor() on the server, which
+ * is what actually charges — this only decides what's displayed.
+ */
+export function commissionRateFor(car: Pick<Car, 'commissionPercent'>) {
+  const percent = car.commissionPercent
+  if (typeof percent === 'number' && percent >= 0 && percent <= 100) return percent / 100
+  return SERVICE_FEE_RATE
+}
+
 export function setRates(rates: { serviceFeeRate?: number; insuranceFeePerDay?: number }) {
   if (typeof rates.serviceFeeRate === 'number' && rates.serviceFeeRate >= 0) {
     SERVICE_FEE_RATE = rates.serviceFeeRate
@@ -77,7 +88,7 @@ export function quote(car: Car, startDate: string, endDate: string): Quote {
     subtotal += amount
   }
 
-  const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE)
+  const serviceFee = Math.round(subtotal * commissionRateFor(car))
   const insuranceFee = days * INSURANCE_FEE_PER_DAY
 
   return {

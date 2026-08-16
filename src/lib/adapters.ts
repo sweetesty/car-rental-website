@@ -71,6 +71,7 @@ export interface CarDTO {
   insurance?: Partial<Car['insurance']>
   unavailableDates?: string[]
   tripCount?: number
+  commissionPercent?: number | null
 }
 
 export interface BookingDTO {
@@ -224,6 +225,7 @@ export function toCar(dto: CarDTO): Car {
     rating: dto.rating ?? 0,
     reviewCount: dto.numReviews ?? 0,
     tripCount: dto.tripCount ?? 0,
+    commissionPercent: dto.commissionPercent ?? null,
     unavailableDates: dto.unavailableDates ?? [],
     createdAt: dto.createdAt ?? new Date().toISOString(),
   }

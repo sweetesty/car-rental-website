@@ -22,6 +22,9 @@ export default function AdminCars() {
   const [inspecting, setInspecting] = useState<Car | null>(null)
   const [pendingDelete, setPendingDelete] = useState<Car | null>(null)
   const [busy, setBusy] = useState(false)
+  // Blank means "use the platform default" — distinct from 0, which is a real
+  // zero-commission listing.
+  const [commission, setCommission] = useState('')
 
   const groups = useMemo(
     () => ({
@@ -33,10 +36,31 @@ export default function AdminCars() {
     [cars],
   )
 
-  const decide = async (car: Car, status: ListingStatus, message: string) => {
+  /**
+   * `commissionPercent` is only sent when the admin is looking at the listing
+   * in the inspect modal — the quick Approve button in the row keeps whatever
+   * rate the car already has rather than silently resetting it.
+   */
+  const decide = async (
+    car: Car,
+    status: ListingStatus,
+    message: string,
+    withCommission = false,
+  ) => {
     setBusy(true)
     try {
-      await setCarStatus(car.id, status)
+      const rate = withCommission
+        ? commission.trim() === ''
+          ? null
+          : Number(commission)
+        : undefined
+
+      if (rate !== undefined && rate !== null && (!Number.isFinite(rate) || rate < 0 || rate > 100)) {
+        toast('Commission must be between 0 and 100.', 'error')
+        return
+      }
+
+      await setCarStatus(car.id, status, rate)
       toast(message)
       setInspecting(null)
     } catch (err) {
@@ -44,6 +68,11 @@ export default function AdminCars() {
     } finally {
       setBusy(false)
     }
+  }
+
+  const openInspect = (car: Car) => {
+    setCommission(car.commissionPercent == null ? '' : String(car.commissionPercent))
+    setInspecting(car)
   }
 
   const list = groups[tab]
@@ -117,7 +146,7 @@ export default function AdminCars() {
                   </dl>
 
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => setInspecting(car)}>
+                    <Button variant="secondary" size="sm" onClick={() => openInspect(car)}>
                       <Eye className="size-3.5" />
                       Inspect
                     </Button>
@@ -192,7 +221,9 @@ export default function AdminCars() {
               </Button>
               <Button
                 loading={busy}
-                onClick={() => decide(inspecting, 'approved', `${inspecting.name} is now live.`)}
+                onClick={() =>
+                  decide(inspecting, 'approved', `${inspecting.name} is now live.`, true)
+                }
               >
                 Approve listing
               </Button>
@@ -202,6 +233,37 @@ export default function AdminCars() {
       >
         {inspecting && (
           <div className="space-y-5">
+            {/* Commission sits above the photos: it is the decision the admin
+                is here to make, and burying it under the gallery invites
+                approving without setting it. */}
+            <div className="surface-sunken rounded-xl border p-4">
+              <label htmlFor="commission" className="text-sm font-bold">
+                AUTOGO commission on this listing
+              </label>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="relative w-32">
+                  <input
+                    id="commission"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                    placeholder="default"
+                    className="surface-raised h-10 w-full rounded-lg border pr-7 pl-3 text-sm font-semibold"
+                  />
+                  <span className="text-dim pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm">
+                    %
+                  </span>
+                </div>
+                <p className="text-dim text-xs leading-snug">
+                  Leave blank to use the platform default. Applies to new bookings only —
+                  existing ones keep the rate they were made at.
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {inspecting.images.map((src, i) => (
                 <img

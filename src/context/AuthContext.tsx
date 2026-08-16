@@ -128,8 +128,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const signup = pendingSignup.current
       pendingSignup.current = null
 
+      const redirectRole = sessionStorage.getItem('autogo:google-role') as 'customer' | 'owner' | null
+      if (redirectRole) {
+        sessionStorage.removeItem('autogo:google-role')
+      }
+
+      // Typed explicitly: without it the union of the three shapes below has no
+      // common `phone`, and reading it in the fallback fails to compile.
+      const syncPayload: { role?: 'customer' | 'owner'; phone?: string } =
+        signup ?? (redirectRole ? { role: redirectRole } : {})
+
       try {
-        const synced = await authService.sync(signup ?? {})
+        const synced = await authService.sync(syncPayload)
         if (!cancelled) persist(synced)
       } catch (err) {
         if (cancelled) return
@@ -140,8 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: firebaseUser.uid,
             name: firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'AUTOGO user',
             email: firebaseUser.email ?? '',
-            phone: signup?.phone,
-            role: signup?.role ?? 'customer',
+            phone: syncPayload.phone,
+            role: syncPayload.role ?? 'customer',
             verification: 'unverified',
             status: 'active',
             createdAt: new Date().toISOString(),
@@ -230,6 +240,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!firebaseConfigured) {
         throw new Error('Google sign-in needs Firebase configured. Use a demo account for now.')
       }
+
+      if (role) {
+        pendingSignup.current = { role, phone: '' }
+        sessionStorage.setItem('autogo:google-role', role)
+      }
+
       try {
         const firebaseUser = await signInWithGoogle()
         // Null means the popup was blocked and a full-page redirect started —
@@ -238,6 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!firebaseUser) return null as never
         return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '', role)
       } catch (err) {
+        if (role) {
+          pendingSignup.current = null
+          sessionStorage.removeItem('autogo:google-role')
+        }
         throw new Error(firebaseError(err))
       }
     },

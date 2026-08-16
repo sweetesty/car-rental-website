@@ -99,6 +99,11 @@ export interface Car {
   rating: number
   reviewCount: number
   tripCount: number
+  /**
+   * Commission AUTOGO takes on this listing, as a percentage. Set by an admin,
+   * usually at approval. Null means the platform default applies.
+   */
+  commissionPercent?: number | null
   /** ISO date strings the car is already booked or blocked out. */
   unavailableDates: string[]
   createdAt: string

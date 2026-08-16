@@ -246,8 +246,16 @@ export const adminService = {
     return toUser(data)
   },
 
-  async setCarStatus(id: string, status: ListingStatus) {
-    const { data } = await api.put<CarDTO>(`/admin/cars/${id}/status`, { status })
+  /**
+   * Approve, reject or suspend a listing — and optionally set the commission
+   * AUTOGO takes on it. Pass null to clear it back to the platform default;
+   * omit it entirely to leave the existing rate alone.
+   */
+  async setCarStatus(id: string, status: ListingStatus, commissionPercent?: number | null) {
+    const { data } = await api.put<CarDTO>(`/admin/cars/${id}/status`, {
+      status,
+      ...(commissionPercent !== undefined ? { commissionPercent } : {}),
+    })
     return toCar(data)
   },
 

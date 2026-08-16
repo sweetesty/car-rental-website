@@ -107,6 +107,9 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'That service is not configured on the server yet.',
 }
 
+/** Statuses whose server text names internals and must never be shown as-is. */
+const DEVELOPER_FACING = new Set([409])
+
 /**
  * Turns an axios failure into something a person can act on. Prefers the
  * message the Express error handler sent; otherwise maps the status code.
@@ -114,13 +117,21 @@ const STATUS_MESSAGES: Record<number, string> = {
  */
 export function apiError(error: unknown, fallback = 'Something went wrong.') {
   if (axios.isAxiosError(error)) {
+    const status = error.response?.status
+
+    /*
+     * A few server messages are written for whoever is reading the logs, not
+     * for a customer — "Call /api/auth/sync first" is an instruction nobody
+     * outside this codebase can act on. Prefer our own wording for those.
+     */
+    if (status && DEVELOPER_FACING.has(status)) return STATUS_MESSAGES[status]
+
     const message = (error.response?.data as { message?: string } | undefined)?.message
     if (message) return message
 
     if (error.code === 'ECONNABORTED') return 'The server took too long to respond.'
-    if (!error.response) return 'Cannot reach the AUTOGO API. Is the server running?'
+    if (status === undefined) return 'Cannot reach the AUTOGO API. Is the server running?'
 
-    const status = error.response.status
     if (STATUS_MESSAGES[status]) return STATUS_MESSAGES[status]
     if (status >= 500) return 'The AUTOGO API hit an error. Check the server logs.'
     return `The API rejected that request (${status}).`
