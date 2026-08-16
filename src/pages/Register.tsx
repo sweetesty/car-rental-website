@@ -4,6 +4,7 @@ import { AlertTriangle, Car, Lock, Mail, Phone, User as UserIcon } from 'lucide-
 import { AuthShell } from '@/components/layout/AuthShell'
 import { Button } from '@/components/ui/Button'
 import { Checkbox, Input } from '@/components/ui/Field'
+import { MIN_PASSWORD_LENGTH, PasswordStrength } from '@/components/ui/PasswordStrength'
 import { useAuth, useToast } from '@/lib/hooks'
 import { cx } from '@/lib/format'
 
@@ -66,7 +67,9 @@ export default function Register() {
     if (form.name.trim().length < 3) next.name = 'Enter your full name.'
     if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Enter a valid email address.'
     if (form.phone.replace(/\D/g, '').length < 10) next.phone = 'Enter a valid phone number.'
-    if (form.password.length < 8) next.password = 'Use at least 8 characters.'
+    if (form.password.length < MIN_PASSWORD_LENGTH) {
+      next.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`
+    }
     if (form.password !== form.confirm) next.confirm = 'Passwords do not match.'
     if (!accepted) next.terms = 'You must accept the terms to continue.'
     setErrors(next)
@@ -92,6 +95,10 @@ export default function Register() {
    * Signing up with Google still has to say which side of the marketplace you
    * are joining — without passing the role, every Google account was created
    * as a customer and could never list a car.
+   *
+   * Google gives us a name and an email but no phone number, so a fresh Google
+   * account goes to /complete-profile to supply one before reaching a
+   * dashboard. An account that already has a number skips that step.
    */
   const withGoogle = async () => {
     if (!accepted) {
@@ -102,12 +109,19 @@ export default function Register() {
     setGoogleBusy(true)
     try {
       const user = await loginWithGoogle(role)
+      const home = user.role === 'owner' ? '/owner' : '/account'
+
+      if (!user.phone?.trim()) {
+        navigate('/complete-profile', { state: { from: home }, replace: true })
+        return
+      }
+
       toast(
         user.role === 'owner'
           ? 'Owner account ready. Add your first car to start earning.'
           : 'Account created. Verify your identity to unlock bookings.',
       )
-      navigate(user.role === 'owner' ? '/owner' : '/account', { replace: true })
+      navigate(home, { replace: true })
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : 'Google sign-up failed.' })
     } finally {
@@ -196,17 +210,19 @@ export default function Register() {
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            type="password"
-            label="Password"
-            autoComplete="new-password"
-            required
-            value={form.password}
-            onChange={set('password')}
-            error={errors.password}
-            hint="At least 8 characters"
-            icon={<Lock className="size-4" />}
-          />
+          <div>
+            <Input
+              type="password"
+              label="Password"
+              autoComplete="new-password"
+              required
+              value={form.password}
+              onChange={set('password')}
+              error={errors.password}
+              icon={<Lock className="size-4" />}
+            />
+            <PasswordStrength value={form.password} />
+          </div>
           <Input
             type="password"
             label="Confirm password"
@@ -263,8 +279,9 @@ export default function Register() {
         </Button>
 
         <p className="text-dim text-center text-xs">
-          Google sign-up uses the option you picked above. You can change roles later by
-          contacting support.
+          Google fills in your name and email. We'll ask for your phone number on the next
+          screen, and you'll join as {role === 'owner' ? 'a car owner' : 'a renter'} — the
+          option picked above.
         </p>
       </form>
     </AuthShell>

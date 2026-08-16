@@ -67,7 +67,7 @@ export default function Login() {
     setError('')
     setBusy(true)
     try {
-      land(await login(email, password))
+      land(await login(email, password, remember))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -166,24 +166,34 @@ export default function Login() {
         </Button>
       </form>
 
-      <div className="mt-8 border-t pt-6">
-        <p className="text-dim text-xs font-bold tracking-wide uppercase">Try a demo account</p>
-        <p className="text-dim mt-1.5 text-xs">
-          Any of these with the password <code className="font-semibold">autogo</code>.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {DEMOS.map((demo) => (
-            <button
-              key={demo.email}
-              type="button"
-              onClick={() => fillDemo(demo.email)}
-              className="surface-sunken hover:border-brand-400 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
-            >
-              {demo.label}
-            </button>
-          ))}
+      {/*
+        The demo-account shortcuts are a development aid: they publish working
+        credentials, so they must never appear on the live site. Gated on the
+        dev build rather than deleted, because they save a lot of typing when
+        testing the three roles locally.
+      */}
+      {import.meta.env.DEV && (
+        <div className="mt-8 border-t pt-6">
+          <p className="text-dim text-xs font-bold tracking-wide uppercase">
+            Try a demo account (dev only)
+          </p>
+          <p className="text-dim mt-1.5 text-xs">
+            Any of these with the password <code className="font-semibold">autogo</code>.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {DEMOS.map((demo) => (
+              <button
+                key={demo.email}
+                type="button"
+                onClick={() => fillDemo(demo.email)}
+                className="surface-sunken hover:border-brand-400 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+              >
+                {demo.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </AuthShell>
   )
 }

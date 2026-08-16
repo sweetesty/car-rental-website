@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Header } from './Header'
 import { Avatar } from '@/components/ui/Misc'
-import { VerificationBadge } from '@/components/ui/Badge'
+import { Badge, VerificationBadge } from '@/components/ui/Badge'
 import { useAuth, useLockBodyScroll } from '@/lib/hooks'
 import { cx, titleCase } from '@/lib/format'
 import type { Role } from '@/lib/types'
@@ -77,8 +77,15 @@ export function DashboardLayout() {
             <p className="text-dim truncate text-xs">{titleCase(user.role)}</p>
           </div>
         </div>
+        {/* An admin has no verification status to show — they are the ones
+            granting it. Labelling platform staff "unverified" reads as though
+            the account is half set up. */}
         <div className="mt-3">
-          <VerificationBadge status={user.verification} />
+          {user.role === 'admin' ? (
+            <Badge tone="brand">staff</Badge>
+          ) : (
+            <VerificationBadge status={user.verification} />
+          )}
         </div>
       </div>
 
@@ -103,7 +110,10 @@ export function DashboardLayout() {
         ))}
       </nav>
 
-      {user.verification !== 'verified' && (
+      {/* KYC applies to the two sides of the marketplace, not to platform
+          staff — an admin does not submit a driver's licence to approve a
+          listing, and prompting them to is just noise. */}
+      {user.role !== 'admin' && user.verification !== 'verified' && (
         <div className="bg-brand-50 dark:bg-brand-950 mt-4 rounded-xl p-4">
           <ShieldCheck className="text-brand-700 dark:text-brand-300 size-5" />
           <p className="mt-2 text-sm font-bold">Finish verification</p>

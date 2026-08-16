@@ -31,6 +31,13 @@ export interface UserDTO {
   verification?: VerificationStatus
   status?: 'active' | 'suspended'
   createdAt?: string
+  kyc?: {
+    governmentId?: boolean
+    driversLicence?: boolean
+    selfie?: boolean
+    submittedAt?: string | null
+    rejectionReason?: string | null
+  }
 }
 
 export interface AuthDTO extends UserDTO {
@@ -155,6 +162,15 @@ export function toUser(dto: UserDTO): User {
     verification: verificationOf(dto),
     status: dto.status ?? 'active',
     createdAt: dto.createdAt ?? new Date().toISOString(),
+    // Only present on the signed-in user's own record — the admin user list
+    // and populated car owners don't carry it.
+    kyc: dto.kyc && {
+      governmentId: Boolean(dto.kyc.governmentId),
+      driversLicence: Boolean(dto.kyc.driversLicence),
+      selfie: Boolean(dto.kyc.selfie),
+      submittedAt: dto.kyc.submittedAt ?? null,
+      rejectionReason: dto.kyc.rejectionReason ?? null,
+    },
   }
 }
 

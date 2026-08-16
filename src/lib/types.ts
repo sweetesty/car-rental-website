@@ -6,6 +6,21 @@ export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'reject
 
 export type AccountStatus = 'active' | 'suspended'
 
+/**
+ * Which identity documents are on file, and the outcome of the last review.
+ *
+ * Booleans only — the server never sends the storage IDs to the account holder,
+ * because the documents are stored with authenticated delivery and only an
+ * admin can mint a link to one.
+ */
+export interface KycState {
+  governmentId: boolean
+  driversLicence: boolean
+  selfie: boolean
+  submittedAt: string | null
+  rejectionReason: string | null
+}
+
 export interface User {
   id: string
   name: string
@@ -16,6 +31,7 @@ export interface User {
   verification: VerificationStatus
   status: AccountStatus
   createdAt: string
+  kyc?: KycState
 }
 
 export type Transmission = 'automatic' | 'manual'

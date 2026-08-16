@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
-import { BadgeCheck, Ban, Search, ShieldCheck, Undo2, Users } from 'lucide-react'
+import { Ban, FileSearch, Search, ShieldCheck, Undo2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
-import { EmptyState, Tabs, Avatar } from '@/components/ui/Misc'
+import { EmptyState, Spinner, Tabs, Avatar } from '@/components/ui/Misc'
 import { Badge, VerificationBadge } from '@/components/ui/Badge'
+import { Modal } from '@/components/ui/Modal'
 import { Table, type Column } from '@/components/ui/Table'
+import { adminService, type KycDocument, type KycReview } from '@/lib/services'
 import { useData, useToast } from '@/lib/hooks'
 import { apiError } from '@/lib/api'
 import { formatDate, titleCase } from '@/lib/format'
@@ -12,12 +14,68 @@ import type { Role, User } from '@/lib/types'
 
 type Tab = 'all' | 'customer' | 'owner' | 'flagged'
 
+const DOCUMENT_LABELS: { key: KycDocument; label: string }[] = [
+  { key: 'governmentId', label: 'Government ID' },
+  { key: 'driversLicence', label: 'Driver’s licence' },
+  { key: 'selfie', label: 'Selfie' },
+]
+
 export default function AdminUsers() {
   const { users, cars, bookings, setUserStatus, setUserVerification } = useData()
   const toast = useToast()
 
   const [tab, setTab] = useState<Tab>('all')
   const [query, setQuery] = useState('')
+
+  // Who is being reviewed, and the signed links fetched when the modal opened.
+  const [reviewing, setReviewing] = useState<User | null>(null)
+  const [review, setReview] = useState<KycReview | null>(null)
+  const [loadingReview, setLoadingReview] = useState(false)
+  const [reason, setReason] = useState('')
+  const [deciding, setDeciding] = useState(false)
+
+  // Approval requires the full set — a missing licence is not an identity you
+  // have checked.
+  const hasAllDocuments = DOCUMENT_LABELS.every(({ key }) => review?.documents[key])
+
+  const openReview = async (user: User) => {
+    setReviewing(user)
+    setReview(null)
+    setReason('')
+    setLoadingReview(true)
+    try {
+      setReview(await adminService.userKyc(user.id))
+    } catch (err) {
+      toast(apiError(err), 'error')
+    } finally {
+      setLoadingReview(false)
+    }
+  }
+
+  const decide = async (verification: User['verification']) => {
+    if (!reviewing) return
+
+    if (verification === 'rejected' && !reason.trim()) {
+      toast('Give a reason — it is emailed to them so they know what to fix.', 'error')
+      return
+    }
+
+    setDeciding(true)
+    try {
+      await setUserVerification(reviewing.id, verification, reason.trim() || undefined)
+      toast(
+        verification === 'verified'
+          ? `${reviewing.name} is now verified.`
+          : `${reviewing.name}'s documents were rejected.`,
+        verification === 'verified' ? 'success' : 'info',
+      )
+      setReviewing(null)
+    } catch (err) {
+      toast(apiError(err), 'error')
+    } finally {
+      setDeciding(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -94,21 +152,18 @@ export default function AdminUsers() {
       align: 'right',
       cell: (u) => (
         <div className="flex justify-end gap-1">
-          {u.verification !== 'verified' && (
+          {/* Reviewing means looking at the documents, so this opens them
+              rather than approving straight from the row. There is no
+              one-click approve here on purpose — approving an identity you
+              have not seen is not a review. */}
+          {u.role !== 'admin' && u.verification !== 'verified' && (
             <Button
               variant="ghost"
               size="sm"
-              title="Approve verification"
-              onClick={async () => {
-                try {
-                  await setUserVerification(u.id, 'verified')
-                  toast(`${u.name} is now verified.`)
-                } catch (err) {
-                  toast(apiError(err), 'error')
-                }
-              }}
+              title="Review documents"
+              onClick={() => openReview(u)}
             >
-              <BadgeCheck className="size-4" />
+              <FileSearch className="size-4" />
             </Button>
           )}
           {u.role !== 'admin' &&
@@ -206,6 +261,107 @@ export default function AdminUsers() {
         Every suspension and verification decision is written to the audit log with your admin ID
         and a timestamp.
       </p>
+
+      <Modal
+        open={!!reviewing}
+        onClose={() => setReviewing(null)}
+        title={reviewing ? `Verify ${reviewing.name}` : ''}
+        description="Check that the documents are readable, unexpired and belong to the same person."
+        size="lg"
+        footer={
+          reviewing && (
+            <>
+              <Button variant="danger" loading={deciding} onClick={() => decide('rejected')}>
+                Reject
+              </Button>
+              <Button
+                loading={deciding}
+                disabled={!hasAllDocuments}
+                onClick={() => decide('verified')}
+              >
+                Approve verification
+              </Button>
+            </>
+          )
+        }
+      >
+        {loadingReview ? (
+          <div className="grid place-items-center py-12">
+            <Spinner />
+          </div>
+        ) : review ? (
+          <div className="space-y-5">
+            <div className="text-dim flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              <span>{review.user.email}</span>
+              <span>
+                Submitted {review.submittedAt ? formatDate(review.submittedAt) : 'not yet'}
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {DOCUMENT_LABELS.map(({ key, label }) => {
+                const src = review.documents[key]
+                return (
+                  <div key={key}>
+                    <p className="text-dim mb-1.5 text-xs font-bold tracking-wide uppercase">
+                      {label}
+                    </p>
+                    {src ? (
+                      // Opens full size in a new tab — a licence number is
+                      // unreadable at thumbnail size.
+                      <a href={src} target="_blank" rel="noreferrer noopener">
+                        <img
+                          src={src}
+                          alt={label}
+                          className="aspect-3/4 w-full rounded-lg border object-cover transition-opacity hover:opacity-90"
+                        />
+                      </a>
+                    ) : (
+                      <div className="text-dim grid aspect-3/4 w-full place-items-center rounded-lg border border-dashed text-xs">
+                        Not uploaded
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {!hasAllDocuments && (
+              <p className="rounded-lg bg-amber-50 p-3.5 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                Not every document is in yet, so this cannot be approved. You can still reject with
+                a reason to prompt them.
+              </p>
+            )}
+
+            <div>
+              <label htmlFor="kyc-reason" className="text-sm font-bold">
+                Reason (required to reject)
+              </label>
+              <textarea
+                id="kyc-reason"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. The licence photo is too blurred to read the expiry date."
+                className="surface-raised mt-2 w-full rounded-lg border p-3 text-sm"
+              />
+              <p className="text-dim mt-1.5 text-xs">
+                This is emailed to them, so write what they need to do differently.
+              </p>
+            </div>
+
+            <p className="text-dim flex items-start gap-2 border-t pt-4 text-xs">
+              <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+              These links are signed and expire in about {Math.round(review.expiresInSeconds / 60)}{' '}
+              minutes. Don't save or forward the images.
+            </p>
+          </div>
+        ) : (
+          <p className="text-dim py-8 text-center text-sm">
+            Could not load the documents. Close this and try again.
+          </p>
+        )}
+      </Modal>
     </>
   )
 }

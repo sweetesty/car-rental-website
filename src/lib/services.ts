@@ -37,7 +37,13 @@ export const authService = {
     return toUser(data)
   },
 
-  async updateProfile(patch: { name?: string; phone?: string; verification?: string }) {
+  async updateProfile(patch: {
+    name?: string
+    phone?: string
+    avatarUrl?: string
+    verification?: string
+    kyc?: Partial<Record<KycDocument, string>>
+  }) {
     const { data } = await api.put<UserDTO>('/auth/me', patch)
     return toUser(data)
   },
@@ -194,6 +200,8 @@ export interface UploadedImage {
   publicId: string
 }
 
+export type KycDocument = 'governmentId' | 'driversLicence' | 'selfie'
+
 export const uploadService = {
   /**
    * Sends the files as multipart/form-data. The Content-Type header is deleted
@@ -215,6 +223,21 @@ export const uploadService = {
     return data.images
   },
 
+  /**
+   * Uploads one identity document. The server stores it with authenticated
+   * delivery and returns only its public ID — there is no readable URL to hand
+   * back, which is the whole point for a government ID.
+   */
+  async kyc(file: File, kind: KycDocument) {
+    const form = new FormData()
+    form.append('document', file)
+    form.append('kind', kind)
+    const { data } = await api.post<{ kind: KycDocument; publicId: string }>('/uploads/kyc', form, {
+      headers: { 'Content-Type': undefined },
+    })
+    return data.publicId
+  },
+
   async avatar(file: File) {
     const form = new FormData()
     form.append('image', file)
@@ -231,13 +254,37 @@ export const uploadService = {
 
 /* ── Admin ── */
 
+/**
+ * What an admin may change on a listing besides its status.
+ *
+ * Both are optional and absence is meaningful: omitting `commissionPercent`
+ * keeps the current rate (null resets it to the platform default), and omitting
+ * `prices` leaves the owner's own rates alone.
+ */
+export type CarModeration = {
+  commissionPercent?: number | null
+  prices?: { perDay: number; perWeek: number; perMonth: number }
+}
+
+export interface KycReview {
+  user: { id: string; name: string; email: string; verification: string }
+  submittedAt: string | null
+  rejectionReason: string | null
+  /** Null for a document the person has not uploaded yet. */
+  documents: Record<KycDocument, string | null>
+  expiresInSeconds: number
+}
+
 export const adminService = {
   async users(): Promise<User[]> {
     const { data } = await api.get<UserDTO[]>('/admin/users')
     return data.map(toUser)
   },
 
-  async setUserStatus(id: string, patch: { status?: User['status']; verification?: string }) {
+  async setUserStatus(
+    id: string,
+    patch: { status?: User['status']; verification?: string; rejectionReason?: string },
+  ) {
     const { data } = await api.put<UserDTO>(`/admin/users/${id}/status`, {
       ...patch,
       // Keep the legacy boolean in step for any code still reading it.
@@ -247,14 +294,30 @@ export const adminService = {
   },
 
   /**
+   * Short-lived signed links to a user's identity documents.
+   *
+   * The URLs expire ten minutes after this call, so they are fetched when the
+   * review modal opens rather than cached with the user list — a link copied
+   * out of the page stops working shortly after, which is the point.
+   */
+  async userKyc(id: string) {
+    const { data } = await api.get<KycReview>(`/admin/users/${id}/kyc`)
+    return data
+  },
+
+  /**
    * Approve, reject or suspend a listing — and optionally set the commission
    * AUTOGO takes on it. Pass null to clear it back to the platform default;
    * omit it entirely to leave the existing rate alone.
    */
-  async setCarStatus(id: string, status: ListingStatus, commissionPercent?: number | null) {
+  async setCarStatus(id: string, status: ListingStatus, overrides: CarModeration = {}) {
+    const { commissionPercent, prices } = overrides
     const { data } = await api.put<CarDTO>(`/admin/cars/${id}/status`, {
       status,
       ...(commissionPercent !== undefined ? { commissionPercent } : {}),
+      // Only sent when the admin actually edited a rate — the server emails the
+      // owner about every change, so a no-op submit must send nothing.
+      ...(prices ? { prices } : {}),
     })
     return toCar(data)
   },

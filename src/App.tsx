@@ -24,6 +24,7 @@ const BecomeAHost = lazy(() => import('@/pages/BecomeAHost'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const Login = lazy(() => import('@/pages/Login'))
 const Register = lazy(() => import('@/pages/Register'))
+const CompleteProfile = lazy(() => import('@/pages/CompleteProfile'))
 
 const TrustAndSafety = lazy(() =>
   import('@/pages/Content').then((m) => ({ default: m.TrustAndSafety })),
@@ -69,6 +70,9 @@ export default function App() {
                     {/* Auth screens use their own full-bleed shell. */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    {/* Deliberately outside RequireRole — that guard is what
+                        redirects here, so gating it would loop. */}
+                    <Route path="/complete-profile" element={<CompleteProfile />} />
 
                     <Route element={<Layout />}>
                       <Route index element={<Home />} />

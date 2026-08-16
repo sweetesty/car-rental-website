@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useAuth, useData, useToast } from '@/lib/hooks'
 import { formatDate, money, moneyCompact, titleCase } from '@/lib/format'
+import { downloadCsv, stampedFilename, toCsv } from '@/lib/csv'
 import type { Transaction } from '@/lib/types'
 
 const MONTH_LABEL = new Intl.DateTimeFormat('en-NG', { month: 'short' })
@@ -55,6 +56,53 @@ export default function OwnerEarnings() {
     return transactions.filter((t) => ids.has(t.bookingId))
   }, [transactions, myBookings])
 
+  /**
+   * A statement an owner can hand to an accountant: every transaction on their
+   * own bookings, with the commission AUTOGO took on each so the gross and the
+   * net are both visible rather than just the figure that landed.
+   */
+  const exportStatement = () => {
+    if (!myTransactions.length) {
+      toast('No transactions to export yet.', 'info')
+      return
+    }
+
+    const rows = myTransactions.map((t) => {
+      const booking = myBookings.find((b) => b.id === t.bookingId)
+      return [
+        formatDate(t.createdAt),
+        t.reference,
+        titleCase(t.type),
+        t.status,
+        t.amount,
+        booking?.serviceFee ?? '',
+        titleCase(t.channel.replace('-', ' ')),
+        booking?.reference ?? '',
+        booking?.car?.name ?? '',
+      ]
+    })
+
+    downloadCsv(
+      stampedFilename('autogo-statement'),
+      toCsv(
+        [
+          'Date',
+          'Reference',
+          'Type',
+          'Status',
+          'Amount (NGN)',
+          'AUTOGO commission (NGN)',
+          'Channel',
+          'Booking',
+          'Car',
+        ],
+        rows,
+      ),
+    )
+
+    toast(`${myTransactions.length} transactions exported.`)
+  }
+
   const columns: Column<Transaction>[] = [
     {
       key: 'reference',
@@ -86,7 +134,11 @@ export default function OwnerEarnings() {
         title="Earnings & payouts"
         subtitle="What you've earned, what's on the way, and where it went."
         action={
-          <Button variant="secondary" onClick={() => toast('Statement exported as CSV.')}>
+          <Button
+            variant="secondary"
+            onClick={exportStatement}
+            disabled={!myTransactions.length}
+          >
             <Download className="size-4" />
             Export statement
           </Button>

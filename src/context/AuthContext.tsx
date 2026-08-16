@@ -1,12 +1,13 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Role, User } from '@/lib/types'
-import { authService } from '@/lib/services'
+import { authService, type KycDocument } from '@/lib/services'
 import { isApiUnavailable, setResyncHandler, setUnauthorizedHandler } from '@/lib/api'
 import {
   firebaseConfigured,
   firebaseError,
   firebaseSignOut,
   registerWithPassword,
+  setSessionPersistence,
   signInWithGoogle,
   signInWithPassword,
   watchAuth,
@@ -21,7 +22,8 @@ interface AuthValue {
   loading: boolean
   /** True when the session is a local demo account, not a real Firebase one. */
   demoSession: boolean
-  login: (email: string, password: string) => Promise<User>
+  /** `keepSignedIn` false ends the session when the browser closes. */
+  login: (email: string, password: string, keepSignedIn?: boolean) => Promise<User>
   /**
    * `role` is only honoured when the account is created — Google sign-in from
    * the register page can therefore produce an owner, while signing in from
@@ -30,9 +32,24 @@ interface AuthValue {
   loginWithGoogle: (role?: 'customer' | 'owner') => Promise<User>
   register: (input: RegisterInput) => Promise<User>
   logout: () => void
-  updateUser: (patch: Partial<User>) => Promise<void>
+  /** Resolves with the saved record, so callers can react to a derived status. */
+  updateUser: (patch: ProfilePatch) => Promise<User | undefined>
   /** Convenience for guards and conditional nav. */
   hasRole: (...roles: Role[]) => boolean
+}
+
+/**
+ * What the account holder may change about themselves.
+ *
+ * `kyc` carries Cloudinary public IDs from an already-completed upload, never
+ * files. `verification` is accepted but the server ignores it on a KYC submit —
+ * the status is derived from which documents are actually on file, so nobody
+ * can promote themselves to verified.
+ */
+export type ProfilePatch = Partial<
+  Pick<User, 'name' | 'phone' | 'avatarUrl' | 'verification'>
+> & {
+  kyc?: Partial<Record<KycDocument, string>>
 }
 
 export interface RegisterInput {
@@ -219,9 +236,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, keepSignedIn = true) => {
       if (!firebaseConfigured) return demoLogin(email, password)
       try {
+        // Must precede sign-in: Firebase fixes persistence when credentials
+        // are exchanged, so setting it afterwards has no effect on this session.
+        await setSessionPersistence(keepSignedIn)
         const firebaseUser = await signInWithPassword(email.trim(), password)
         return await syncOrFallback(firebaseUser.uid, email)
       } catch (err) {
@@ -316,21 +336,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const updateUser = useCallback(
-    async (patch: Partial<User>) => {
+    async (patch: ProfilePatch) => {
       if (demoSession || !firebaseConfigured) {
-        if (user) persist({ ...user, ...patch }, demoSession)
-        return
+        if (!user) return undefined
+        // A demo account has nowhere to store a document, so submitting a
+        // complete set just moves it into the review state the real server
+        // would have derived.
+        const complete =
+          patch.kyc && ['governmentId', 'driversLicence', 'selfie'].every((k) => k in patch.kyc!)
+        const next: User = {
+          ...user,
+          ...patch,
+          kyc: undefined,
+          verification: complete ? 'pending' : (patch.verification ?? user.verification),
+        }
+        persist(next, demoSession)
+        return next
       }
       try {
         const updated = await authService.updateProfile({
           name: patch.name,
           phone: patch.phone,
+          avatarUrl: patch.avatarUrl,
           verification: patch.verification,
+          // Cloudinary public IDs, not files — the upload already happened.
+          kyc: patch.kyc,
         })
         persist(updated)
+        return updated
       } catch (err) {
         if (!isApiUnavailable(err) || !user) throw err
-        persist({ ...user, ...patch })
+        const fallback = { ...user, ...patch, kyc: user.kyc }
+        persist(fallback)
+        return fallback
       }
     },
     [persist, user, demoSession],

@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useData, useToast } from '@/lib/hooks'
 import { apiError } from '@/lib/api'
 import { formatDate, money, moneyCompact, titleCase } from '@/lib/format'
+import { downloadCsv, stampedFilename, toCsv } from '@/lib/csv'
 import type { Transaction } from '@/lib/types'
 
 type Tab = 'all' | 'payment' | 'payout' | 'refund'
@@ -45,6 +46,54 @@ export default function AdminPayments() {
       return true
     })
   }, [transactions, bookings, tab, query])
+
+  /**
+   * Exports what is currently on screen, not the whole ledger — if the admin
+   * has filtered to refunds, a report containing every payment is not the
+   * report they asked for. The heading says which view it came from.
+   */
+  const exportCsv = () => {
+    if (!filtered.length) {
+      toast('Nothing to export in this view.', 'info')
+      return
+    }
+
+    const rows = filtered.map((t) => {
+      const booking = bookings.find((b) => b.id === t.bookingId)
+      return [
+        formatDate(t.createdAt),
+        t.reference,
+        titleCase(t.type),
+        t.status,
+        // Unformatted so the column stays numeric in a spreadsheet.
+        t.amount,
+        t.channel,
+        booking?.reference ?? '',
+        booking?.renter.fullName ?? '',
+        booking?.car?.name ?? '',
+      ]
+    })
+
+    downloadCsv(
+      stampedFilename(tab === 'all' ? 'autogo-payments' : `autogo-${tab}s`),
+      toCsv(
+        [
+          'Date',
+          'Reference',
+          'Type',
+          'Status',
+          'Amount (NGN)',
+          'Channel',
+          'Booking',
+          'Customer',
+          'Car',
+        ],
+        rows,
+      ),
+    )
+
+    toast(`${filtered.length} transaction${filtered.length === 1 ? '' : 's'} exported.`)
+  }
 
   // Marking the booking refunded is what creates the refund row — the ledger is
   // derived from booking state rather than stored separately.
@@ -125,7 +174,7 @@ export default function AdminPayments() {
         title="Payments"
         subtitle="Every transaction across the platform, with refund controls."
         action={
-          <Button variant="secondary" onClick={() => toast('Financial report exported as CSV.')}>
+          <Button variant="secondary" onClick={exportCsv} disabled={!filtered.length}>
             <Download className="size-4" />
             Financial report
           </Button>

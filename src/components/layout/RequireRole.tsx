@@ -26,6 +26,15 @@ export function RequireRole({ roles }: { roles: Role[] }) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
+  /*
+   * A Google account arrives with no phone number — Google simply doesn't
+   * release one. Collect it once, here, rather than discovering it's missing
+   * at handover. Admins are exempt: they never appear on a booking.
+   */
+  if (!user.phone?.trim() && user.role !== 'admin') {
+    return <Navigate to="/complete-profile" state={{ from: location.pathname }} replace />
+  }
+
   if (!roles.includes(user.role)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-24">

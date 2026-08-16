@@ -1,10 +1,13 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import {
   GoogleAuthProvider,
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   getAuth,
   getRedirectResult,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
@@ -65,6 +68,27 @@ export function watchAuth(callback: (user: FirebaseUser | null) => void) {
     return () => {}
   }
   return onAuthStateChanged(auth, callback)
+}
+
+/**
+ * Controls how long a session outlives the browser.
+ *
+ * `local` keeps the user signed in after the browser is closed; `session`
+ * clears it when the tab does. Must be set BEFORE signing in — Firebase
+ * applies persistence at the moment credentials are exchanged.
+ *
+ * This is what makes the "Keep me signed in" checkbox mean something. Without
+ * it Firebase always uses `local`, so a person unticking the box on a shared
+ * phone would stay signed in regardless — a promise the UI was making and
+ * quietly breaking.
+ */
+export async function setSessionPersistence(keepSignedIn: boolean) {
+  if (!auth) return
+  try {
+    await setPersistence(auth, keepSignedIn ? browserLocalPersistence : browserSessionPersistence)
+  } catch {
+    // Private browsing can block storage; the sign-in itself should still work.
+  }
 }
 
 export async function signInWithPassword(email: string, password: string) {

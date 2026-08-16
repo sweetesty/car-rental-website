@@ -16,6 +16,7 @@ import {
   paymentService,
   reviewService,
 } from '@/lib/services'
+import type { CarModeration } from '@/lib/services'
 import { transactionsFromBookings, withBookedDates } from '@/lib/adapters'
 import { apiError } from '@/lib/api'
 // Imported directly rather than via the `useAuth` hook barrel — that barrel also
@@ -56,7 +57,7 @@ interface DataValue {
   setCarStatus: (
     id: string,
     status: ListingStatus,
-    commissionPercent?: number | null,
+    overrides?: CarModeration,
   ) => Promise<void>
   setCarAvailability: (id: string, unavailableDates: string[]) => Promise<void>
   deleteCar: (id: string) => Promise<void>
@@ -73,7 +74,11 @@ interface DataValue {
   replyToReview: (reviewId: string, comment: string) => Promise<void>
 
   setUserStatus: (id: string, status: User['status']) => Promise<void>
-  setUserVerification: (id: string, verification: User['verification']) => Promise<void>
+  setUserVerification: (
+    id: string,
+    verification: User['verification'],
+    rejectionReason?: string,
+  ) => Promise<void>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -307,20 +312,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const setCarStatus = useCallback(
-    async (id: string, status: ListingStatus, commissionPercent?: number | null) => {
+    async (id: string, status: ListingStatus, overrides: CarModeration = {}) => {
       if (demo) {
         patchCarLocal(id, {
           status,
-          ...(commissionPercent !== undefined ? { commissionPercent } : {}),
+          ...(overrides.commissionPercent !== undefined
+            ? { commissionPercent: overrides.commissionPercent }
+            : {}),
+          ...(overrides.prices
+            ? {
+                pricePerDay: overrides.prices.perDay,
+                pricePerWeek: overrides.prices.perWeek,
+                pricePerMonth: overrides.prices.perMonth,
+              }
+            : {}),
         })
         return
       }
       // Admins go through the moderation endpoint; owners through their own
-      // car. Only the admin route accepts a commission — an owner setting the
-      // platform's own cut would be an obvious conflict of interest.
+      // car. Only the admin route accepts a commission or a price override —
+      // an owner setting the platform's own cut would be an obvious conflict
+      // of interest.
       const updated =
         user?.role === 'admin'
-          ? await adminService.setCarStatus(id, status, commissionPercent)
+          ? await adminService.setCarStatus(id, status, overrides)
           : await carService.patch(id, { status })
       upsertCar(updated)
     },
@@ -523,8 +538,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const setUserVerification = useCallback(
-    async (id: string, verification: User['verification']) => {
-      if (!demo) await adminService.setUserStatus(id, { verification })
+    async (id: string, verification: User['verification'], rejectionReason?: string) => {
+      if (!demo) await adminService.setUserStatus(id, { verification, rejectionReason })
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, verification } : u)))
     },
     [demo],

@@ -1,4 +1,12 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import {
+  useId,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { cx } from '@/lib/format'
 
 const CONTROL =
@@ -44,6 +52,16 @@ type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> & {
 }
 
 export function Input({ label, hint, error, icon, className, ...rest }: InputProps) {
+  const [revealed, setRevealed] = useState(false)
+
+  /*
+   * Password fields get a reveal toggle. On a phone, typing a password blind
+   * is the single most common reason a sign-in fails twice before it works —
+   * and hiding it protects nothing when the person is alone with their device.
+   */
+  const isPassword = rest.type === 'password'
+  const type = isPassword && revealed ? 'text' : rest.type
+
   return (
     <Wrap label={label} hint={hint} error={error} required={rest.required} className={className}>
       {(id) => (
@@ -56,9 +74,29 @@ export function Input({ label, hint, error, icon, className, ...rest }: InputPro
           <input
             id={id}
             {...rest}
+            type={type}
             aria-invalid={error ? true : undefined}
-            className={cx(CONTROL, 'h-11', icon && 'pl-10', error && INVALID)}
+            className={cx(
+              CONTROL,
+              'h-11',
+              icon && 'pl-10',
+              isPassword && 'pr-11',
+              error && INVALID,
+            )}
           />
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setRevealed((v) => !v)}
+              // Not in the tab order: it's a convenience, and a keyboard user
+              // tabbing from password should land on the submit button.
+              tabIndex={-1}
+              aria-label={revealed ? 'Hide password' : 'Show password'}
+              className="text-dim hover:text-ink-950 dark:hover:text-white absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 transition-colors"
+            >
+              {revealed ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
+            </button>
+          )}
         </div>
       )}
     </Wrap>
