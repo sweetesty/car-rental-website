@@ -4,7 +4,8 @@ import { AlertTriangle, ArrowLeft, MailCheck, Mail } from 'lucide-react'
 import { AuthShell } from '@/components/layout/AuthShell'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Field'
-import { sendPasswordReset } from '@/lib/firebase'
+import { authService } from '@/lib/services'
+import { apiError } from '@/lib/api'
 
 /**
  * Password reset.
@@ -34,26 +35,23 @@ export default function ForgotPassword() {
     setError('')
     setBusy(true)
     try {
-      await sendPasswordReset(address)
+      /*
+       * Through our own API, not the Firebase client SDK.
+       *
+       * Firebase sends from noreply@<project>.firebaseapp.com — no SPF/DKIM
+       * tie to autogo.ng, a reputation shared with every other free project,
+       * and the internal project id shown to customers. The server mints the
+       * same link and sends it via Resend from support@autogo.ng, in the same
+       * template as every other AUTOGO email.
+       *
+       * The server also emails people whose address has no account, telling
+       * them so. That answer belongs in the inbox rather than on this screen,
+       * where anyone typing addresses could read off who your customers are.
+       */
+      await authService.forgotPassword(address)
       setSent(true)
     } catch (err) {
-      /*
-       * "No account found" is deliberately not shown.
-       *
-       * Reporting which addresses are registered turns this form into a way to
-       * enumerate the customer list — type addresses, note which ones exist.
-       * Every outcome looks the same to the sender; only the real owner of the
-       * inbox learns anything. Same reason a Google-only account, which has no
-       * password to reset, gets the neutral message and the hint below.
-       */
-      const code = typeof err === 'object' && err && 'code' in err ? String(err.code) : ''
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
-        setSent(true)
-      } else if (code === 'auth/too-many-requests') {
-        setError('Too many attempts. Wait a few minutes and try again.')
-      } else {
-        setError('We could not send the email just now. Try again in a moment.')
-      }
+      setError(apiError(err))
     } finally {
       setBusy(false)
     }
@@ -63,23 +61,25 @@ export default function ForgotPassword() {
     return (
       <AuthShell
         title="Check your inbox"
-        subtitle={`If an AUTOGO account uses ${email.trim()}, a reset link is on its way.`}
+        subtitle={`We've emailed ${email.trim()}.`}
       >
         <div className="space-y-5">
           <div className="text-brand-800 dark:text-brand-200 bg-brand-50 dark:bg-brand-950 flex items-start gap-3 rounded-lg p-4 text-sm">
             <MailCheck className="mt-0.5 size-5 shrink-0" />
             <div>
-              <p className="font-bold">The link expires in about an hour.</p>
+              <p className="font-bold">You'll get an email either way.</p>
               <p className="mt-1 leading-relaxed">
-                It can take a minute to arrive. Check your spam folder before trying again.
+                If this address has an AUTOGO account, it contains a reset link that works once
+                and expires in an hour. If it doesn't, the email says so — so check there before
+                trying another address.
               </p>
             </div>
           </div>
 
           <p className="text-dim text-sm leading-relaxed">
-            Nothing arrives? You may have signed up with Google — that account has no AUTOGO
-            password, so use the{' '}
-            <span className="font-semibold">Continue with Google</span> button instead.
+            Give it a minute, and look in spam. Signed up with Google? That account has no AUTOGO
+            password — use the <span className="font-semibold">Continue with Google</span> button
+            instead.
           </p>
 
           <div className="flex flex-wrap gap-3">

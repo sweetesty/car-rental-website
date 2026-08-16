@@ -37,6 +37,22 @@ export const authService = {
     return toUser(data)
   },
 
+  /**
+   * Asks the server to email a reset link.
+   *
+   * Deliberately not the Firebase client SDK: that sends from
+   * noreply@<project>.firebaseapp.com, which lands in spam and shows the
+   * internal project id to customers. The server mints the same link and
+   * sends it through Resend on our own domain.
+   *
+   * Always resolves. Whether an account exists is answered by email, to the
+   * person who owns the inbox — not in this response, where anyone could read
+   * it off the form.
+   */
+  async forgotPassword(email: string) {
+    await api.post('/auth/forgot-password', { email })
+  },
+
   async updateProfile(patch: {
     name?: string
     phone?: string
