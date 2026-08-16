@@ -140,7 +140,13 @@ export default function Login() {
 
         <div className="flex items-center justify-between">
           <Checkbox checked={remember} onChange={setRemember} label="Keep me signed in" />
-          <Link to="/support" className="text-dim hover:text-brand-600 text-sm">
+          {/* Carries whatever is already typed, so the reset page doesn't ask
+              for the same address again. */}
+          <Link
+            to="/forgot-password"
+            state={{ email }}
+            className="text-dim hover:text-brand-600 text-sm"
+          >
             Forgot password?
           </Link>
         </div>

@@ -27,6 +27,7 @@ const NotFound = lazyPage(() => import('@/pages/NotFound'))
 const Login = lazyPage(() => import('@/pages/Login'))
 const Register = lazyPage(() => import('@/pages/Register'))
 const CompleteProfile = lazyPage(() => import('@/pages/CompleteProfile'))
+const ForgotPassword = lazyPage(() => import('@/pages/ForgotPassword'))
 
 const TrustAndSafety = lazyPage(() =>
   import('@/pages/Content').then((m) => ({ default: m.TrustAndSafety })),
@@ -76,6 +77,7 @@ export default function App() {
                     {/* Auth screens use their own full-bleed shell. */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
                     {/* Deliberately outside RequireRole — that guard is what
                         redirects here, so gating it would loop. */}
                     <Route path="/complete-profile" element={<CompleteProfile />} />
