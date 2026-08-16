@@ -6,10 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  CreditCard,
-  Landmark,
   Lock,
-  Smartphone,
 } from 'lucide-react'
 import { Button, LinkButton } from '@/components/ui/Button'
 import { Card, EmptyState } from '@/components/ui/Misc'
@@ -23,11 +20,6 @@ import type { Booking as BookingType, RenterDetails } from '@/lib/types'
 
 const STEPS = ['Dates', 'Your details', 'Review', 'Payment'] as const
 
-const CHANNELS = [
-  { value: 'card', label: 'Debit / credit card', body: 'Visa, Mastercard, Verve', icon: CreditCard },
-  { value: 'bank-transfer', label: 'Bank transfer', body: 'Pay from any Nigerian bank', icon: Landmark },
-  { value: 'wallet', label: 'Mobile wallet', body: 'Opay, PalmPay, Moniepoint', icon: Smartphone },
-] as const
 
 export default function Booking() {
   const { carId = '' } = useParams()
@@ -440,37 +432,30 @@ export default function Booking() {
                   </p>
 
                   {/*
-                    The method is chosen on Paystack's page, not here.
+                    One statement, no options.
 
-                    This was a radio group, but `pay()` never read the
-                    selection — every option went to the same Paystack
-                    checkout. Choosing "bank transfer" then revealed a
-                    hardcoded account number, so a customer could send money to
-                    an account that was never ours, against a reference that
-                    was the car's number plate rather than their booking, and
-                    no booking would ever be marked paid. Listing what Paystack
-                    accepts is honest; offering a choice that did nothing, and
-                    an account nobody monitors, was not.
+                    This was a radio group of card / transfer / wallet, but
+                    `pay()` never read the selection — all three went to the
+                    same Paystack checkout, and "bank transfer" revealed a
+                    hardcoded account nobody monitors. Anything that cannot be
+                    chosen should not look choosable, so the methods are named
+                    in a sentence instead: true, and no false affordance.
                   */}
-                  <ul className="mt-6 space-y-3">
-                    {CHANNELS.map((option) => (
-                      <li
-                        key={option.value}
-                        className="flex items-center gap-4 rounded-xl border p-4"
-                      >
-                        <option.icon className="text-brand-600 dark:text-brand-400 size-5 shrink-0" />
-                        <span>
-                          <span className="block text-sm font-bold">{option.label}</span>
-                          <span className="text-dim block text-xs">{option.body}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="surface-sunken mt-6 rounded-xl border p-5">
+                    <p className="flex items-center gap-2.5 font-bold">
+                      <Lock className="text-brand-600 dark:text-brand-400 size-4.5" />
+                      Pay {money(priced.total)} on Paystack
+                    </p>
+                    <p className="text-dim mt-2 text-sm leading-relaxed">
+                      Continuing takes you to Paystack's secure page, where you can pay by card,
+                      bank transfer or USSD — including from Opay, PalmPay or Moniepoint. You come
+                      straight back here once it's done.
+                    </p>
+                  </div>
 
                   <p className="text-dim mt-4 text-sm leading-relaxed">
-                    Continue to pay {money(priced.total)} on Paystack's secure page, where you pick
-                    the method that suits you. AUTOGO only ever collects payment through Paystack —
-                    never send money to a bank account someone gives you elsewhere.
+                    AUTOGO only ever collects payment through Paystack. Never send money to a bank
+                    account someone gives you anywhere else, even if it uses our name.
                   </p>
 
                   <p className="text-dim mt-6 flex items-center justify-center gap-2 text-xs">
