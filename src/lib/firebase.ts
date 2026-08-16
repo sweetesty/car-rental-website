@@ -10,6 +10,9 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  applyActionCode,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -167,6 +170,33 @@ export async function firebaseSignOut() {
 export async function sendPasswordReset(email: string) {
   if (!auth) throw new Error('Firebase is not configured.')
   await sendPasswordResetEmail(auth, email)
+}
+
+/*
+ * Handlers for the links Firebase mints.
+ *
+ * Firebase normally hosts this step itself, on
+ * <project>.firebaseapp.com/__/auth/action — which shows customers the
+ * internal project id and takes them off autogo.ng mid-recovery. Pointing the
+ * action URL at our own page means these three do the work instead.
+ */
+
+/** Checks a reset code is valid and unused, and returns whose account it is. */
+export async function checkResetCode(code: string) {
+  if (!auth) throw new Error('Firebase is not configured.')
+  return verifyPasswordResetCode(auth, code)
+}
+
+/** Sets the new password. The code is single-use and dies here. */
+export async function completePasswordReset(code: string, newPassword: string) {
+  if (!auth) throw new Error('Firebase is not configured.')
+  await confirmPasswordReset(auth, code, newPassword)
+}
+
+/** Applies an email-verification code. */
+export async function applyEmailAction(code: string) {
+  if (!auth) throw new Error('Firebase is not configured.')
+  await applyActionCode(auth, code)
 }
 
 /** True when the signed-in account uses Google rather than a password. */

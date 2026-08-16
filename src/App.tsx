@@ -28,6 +28,7 @@ const Login = lazyPage(() => import('@/pages/Login'))
 const Register = lazyPage(() => import('@/pages/Register'))
 const CompleteProfile = lazyPage(() => import('@/pages/CompleteProfile'))
 const ForgotPassword = lazyPage(() => import('@/pages/ForgotPassword'))
+const AuthAction = lazyPage(() => import('@/pages/AuthAction'))
 
 const TrustAndSafety = lazyPage(() =>
   import('@/pages/Content').then((m) => ({ default: m.TrustAndSafety })),
@@ -78,6 +79,10 @@ export default function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
+                    {/* Where Firebase's emailed links land once the action URL
+                        is customised. Must stay at this exact path — it is
+                        configured in the Firebase console, not here. */}
+                    <Route path="/auth/action" element={<AuthAction />} />
                     {/* Deliberately outside RequireRole — that guard is what
                         redirects here, so gating it would loop. */}
                     <Route path="/complete-profile" element={<CompleteProfile />} />
