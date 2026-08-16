@@ -69,6 +69,8 @@ interface DataValue {
     paymentStatus?: string,
   ) => Promise<void>
   startPayment: (bookingId: string) => Promise<{ authorization_url: string; reference: string }>
+  /** Verifies a Paystack reference server-side and stores the settled booking. */
+  confirmPayment: (reference: string) => Promise<Booking | undefined>
 
   addReview: (input: { carId: string; rating: number; comment: string }) => Promise<void>
   replyToReview: (reviewId: string, comment: string) => Promise<void>
@@ -476,6 +478,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [demo],
   )
 
+  /**
+   * Settles the booking Paystack just redirected back from.
+   *
+   * The server asks Paystack whether that reference actually succeeded rather
+   * than believing the browser — a pasted reference confirms nothing. Shares
+   * settleBooking() with the webhook, so whichever arrives first wins and only
+   * one confirmation email goes out.
+   */
+  const confirmPayment = useCallback(
+    async (reference: string) => {
+      if (demo) return undefined
+      const booking = await paymentService.verify(reference)
+      upsertBooking(booking)
+      return booking
+    },
+    [demo, upsertBooking],
+  )
+
   /* ── Reviews ── */
 
   const addReview = useCallback(
@@ -568,6 +588,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createBooking,
       setBookingStatus,
       startPayment,
+      confirmPayment,
       addReview,
       replyToReview,
       setUserStatus,
@@ -595,6 +616,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createBooking,
       setBookingStatus,
       startPayment,
+      confirmPayment,
       addReview,
       replyToReview,
       setUserStatus,
