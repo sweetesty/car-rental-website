@@ -101,10 +101,10 @@ export default function Register() {
    * dashboard. An account that already has a number skips that step.
    */
   const withGoogle = async () => {
-    if (!accepted) {
-      setErrors({ terms: 'You must accept the terms to continue.' })
-      return
-    }
+    // Deliberately not gated on the terms checkbox. Sending someone to Google
+    // and back only to refuse them over a box they never saw the point of is a
+    // bad trade — the terms are accepted on the next screen instead, alongside
+    // the phone number Google doesn't give us.
     setErrors({})
     setGoogleBusy(true)
     try {
@@ -279,9 +279,9 @@ export default function Register() {
         </Button>
 
         <p className="text-dim text-center text-xs">
-          Google fills in your name and email. We'll ask for your phone number on the next
-          screen, and you'll join as {role === 'owner' ? 'a car owner' : 'a renter'} — the
-          option picked above.
+          Google fills in your name and email. We'll ask for your phone number and agreement to
+          the terms on the next screen, and you'll join as{' '}
+          {role === 'owner' ? 'a car owner' : 'a renter'} — the option picked above.
         </p>
       </form>
     </AuthShell>

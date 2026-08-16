@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Phone } from 'lucide-react'
 import { AuthShell } from '@/components/layout/AuthShell'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Misc'
-import { Input } from '@/components/ui/Field'
+import { Checkbox, Input } from '@/components/ui/Field'
 import { useAuth, useToast } from '@/lib/hooks'
 import { apiError } from '@/lib/api'
 
@@ -24,6 +24,7 @@ export default function CompleteProfile() {
   const toast = useToast()
 
   const [phone, setPhone] = useState(user?.phone ?? '')
+  const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -36,6 +37,11 @@ export default function CompleteProfile() {
 
     if (phone.replace(/\D/g, '').length < 10) {
       setError('Enter a valid phone number.')
+      return
+    }
+
+    if (!accepted) {
+      setError('You must accept the terms to continue.')
       return
     }
 
@@ -96,6 +102,24 @@ export default function CompleteProfile() {
             ? 'Renters see this only after you accept their booking, so you can arrange the handover.'
             : 'The owner sees this only after your booking is confirmed, so they can reach you at pickup.'}
         </p>
+
+        <Checkbox
+          checked={accepted}
+          onChange={setAccepted}
+          label={
+            <>
+              I agree to the{' '}
+              <Link to="/terms" className="text-brand-700 dark:text-brand-300 font-semibold">
+                terms of service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="text-brand-700 dark:text-brand-300 font-semibold">
+                privacy policy
+              </Link>
+              .
+            </>
+          }
+        />
 
         <Button type="submit" fullWidth size="lg" loading={busy}>
           Finish setting up
