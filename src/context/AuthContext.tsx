@@ -82,6 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Carried into the /sync call that follows a fresh registration.
   const pendingSignup = useRef<{ role: 'customer' | 'owner'; phone: string } | null>(null)
 
+  /*
+   * True while a sign-in handler is doing its own /auth/sync, so the auth-state
+   * watcher doesn't fire a second one for the same session. A ref, not state:
+   * the watcher has to read the current value, and a re-render would be both
+   * pointless and too late.
+   */
+  const explicitSync = useRef(false)
+
   const persist = useCallback((next: User | null, demo = false) => {
     setUser(next)
     setDemoSession(demo)
@@ -138,6 +146,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!firebaseUser) {
         if (!restoreDemoSession()) persist(null)
+        setLoading(false)
+        return
+      }
+
+      /*
+       * An explicit sign-in is already syncing this session — stand down.
+       *
+       * Signing in fires this watcher AND runs the button handler's own sync,
+       * so both used to POST /auth/sync at the same moment for the same brand
+       * new account. Two concurrent creates meant two welcome emails, and when
+       * the losing request errored, the `persist(null)` below signed the user
+       * straight back out — which is why creating an account with Google
+       * dumped people on the login page instead of into the app.
+       *
+       * The redirect fallback and ordinary page loads still land here, because
+       * nothing set this flag in those cases.
+       */
+      if (explicitSync.current) {
         setLoading(false)
         return
       }
@@ -242,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Must precede sign-in: Firebase fixes persistence when credentials
         // are exchanged, so setting it afterwards has no effect on this session.
         await setSessionPersistence(keepSignedIn)
+        explicitSync.current = true
         const firebaseUser = await signInWithPassword(email.trim(), password)
         return await syncOrFallback(firebaseUser.uid, email)
       } catch (err) {
@@ -250,6 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return demoLogin(email, password)
         }
         throw new Error(firebaseError(err))
+      } finally {
+        explicitSync.current = false
       }
     },
     [demoLogin, syncOrFallback],
@@ -279,11 +308,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          */
         await setSessionPersistence(keepSignedIn)
 
+        // Claim the sync before Firebase can fire its state change, so the
+        // watcher never races us to create the same account twice.
+        explicitSync.current = true
+
         const firebaseUser = await signInWithGoogle()
+
         // Null means the popup was blocked and a full-page redirect started —
         // the browser is navigating away, so there is nothing to resolve with.
-        // watchAuth picks the session up when it returns.
-        if (!firebaseUser) return null as never
+        // Hand the sync back to watchAuth, which handles the return trip.
+        if (!firebaseUser) {
+          explicitSync.current = false
+          return null as never
+        }
+
         return await syncOrFallback(firebaseUser.uid, firebaseUser.email ?? '', role)
       } catch (err) {
         if (role) {
@@ -291,6 +329,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionStorage.removeItem('autogo:google-role')
         }
         throw new Error(firebaseError(err))
+      } finally {
+        // Released only once our sync has finished, so a state change arriving
+        // mid-flight is ignored rather than duplicating the work.
+        explicitSync.current = false
       }
     },
     [syncOrFallback],
@@ -319,8 +361,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        // Handed to the watchAuth listener, which creates the Mongo record.
+        // Kept as a fallback for the watcher in case this handler is torn down
+        // mid-flight; the sync below is what normally creates the record.
         pendingSignup.current = { role: input.role, phone: input.phone.trim() }
+        explicitSync.current = true
+
         await registerWithPassword(email, input.password, name)
         const synced = await authService.sync({ role: input.role, phone: input.phone.trim() })
         persist(synced)
@@ -342,6 +387,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return created
         }
         throw new Error(firebaseError(err))
+      } finally {
+        explicitSync.current = false
       }
     },
     [persist],

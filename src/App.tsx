@@ -1,9 +1,11 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { RequireRole } from '@/components/layout/RequireRole'
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary'
 import { Spinner } from '@/components/ui/Misc'
+import { lazyPage } from '@/lib/lazyPage'
 import { ThemeProvider } from '@/context/ThemeContext'
 import { AuthProvider } from '@/context/AuthContext'
 import { DataProvider } from '@/context/DataContext'
@@ -12,44 +14,44 @@ import { ToastProvider } from '@/context/ToastContext'
 import Home from '@/pages/Home'
 
 /* Everything past the landing page is split out — the homepage ships alone. */
-const Cars = lazy(() => import('@/pages/Cars'))
-const CarDetails = lazy(() => import('@/pages/CarDetails'))
-const Compare = lazy(() => import('@/pages/Compare'))
-const Favorites = lazy(() => import('@/pages/Favorites'))
-const Booking = lazy(() => import('@/pages/Booking'))
-const BookingConfirmed = lazy(() => import('@/pages/BookingConfirmed'))
-const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
-const WhyAutogo = lazy(() => import('@/pages/WhyAutogo'))
-const BecomeAHost = lazy(() => import('@/pages/BecomeAHost'))
-const NotFound = lazy(() => import('@/pages/NotFound'))
-const Login = lazy(() => import('@/pages/Login'))
-const Register = lazy(() => import('@/pages/Register'))
-const CompleteProfile = lazy(() => import('@/pages/CompleteProfile'))
+const Cars = lazyPage(() => import('@/pages/Cars'))
+const CarDetails = lazyPage(() => import('@/pages/CarDetails'))
+const Compare = lazyPage(() => import('@/pages/Compare'))
+const Favorites = lazyPage(() => import('@/pages/Favorites'))
+const Booking = lazyPage(() => import('@/pages/Booking'))
+const BookingConfirmed = lazyPage(() => import('@/pages/BookingConfirmed'))
+const HowItWorks = lazyPage(() => import('@/pages/HowItWorks'))
+const WhyAutogo = lazyPage(() => import('@/pages/WhyAutogo'))
+const BecomeAHost = lazyPage(() => import('@/pages/BecomeAHost'))
+const NotFound = lazyPage(() => import('@/pages/NotFound'))
+const Login = lazyPage(() => import('@/pages/Login'))
+const Register = lazyPage(() => import('@/pages/Register'))
+const CompleteProfile = lazyPage(() => import('@/pages/CompleteProfile'))
 
-const TrustAndSafety = lazy(() =>
+const TrustAndSafety = lazyPage(() =>
   import('@/pages/Content').then((m) => ({ default: m.TrustAndSafety })),
 )
-const Support = lazy(() => import('@/pages/Content').then((m) => ({ default: m.Support })))
-const Terms = lazy(() => import('@/pages/Content').then((m) => ({ default: m.Terms })))
-const Privacy = lazy(() => import('@/pages/Content').then((m) => ({ default: m.Privacy })))
+const Support = lazyPage(() => import('@/pages/Content').then((m) => ({ default: m.Support })))
+const Terms = lazyPage(() => import('@/pages/Content').then((m) => ({ default: m.Terms })))
+const Privacy = lazyPage(() => import('@/pages/Content').then((m) => ({ default: m.Privacy })))
 
-const MyBookings = lazy(() => import('@/pages/dashboard/MyBookings'))
-const MyReviews = lazy(() => import('@/pages/dashboard/MyReviews'))
-const MyPayments = lazy(() => import('@/pages/dashboard/MyPayments'))
-const Profile = lazy(() => import('@/pages/dashboard/Profile'))
+const MyBookings = lazyPage(() => import('@/pages/dashboard/MyBookings'))
+const MyReviews = lazyPage(() => import('@/pages/dashboard/MyReviews'))
+const MyPayments = lazyPage(() => import('@/pages/dashboard/MyPayments'))
+const Profile = lazyPage(() => import('@/pages/dashboard/Profile'))
 
-const OwnerOverview = lazy(() => import('@/pages/dashboard/OwnerOverview'))
-const OwnerCars = lazy(() => import('@/pages/dashboard/OwnerCars'))
-const CarForm = lazy(() => import('@/pages/dashboard/CarForm'))
-const OwnerBookings = lazy(() => import('@/pages/dashboard/OwnerBookings'))
-const OwnerCalendar = lazy(() => import('@/pages/dashboard/OwnerCalendar'))
-const OwnerEarnings = lazy(() => import('@/pages/dashboard/OwnerEarnings'))
+const OwnerOverview = lazyPage(() => import('@/pages/dashboard/OwnerOverview'))
+const OwnerCars = lazyPage(() => import('@/pages/dashboard/OwnerCars'))
+const CarForm = lazyPage(() => import('@/pages/dashboard/CarForm'))
+const OwnerBookings = lazyPage(() => import('@/pages/dashboard/OwnerBookings'))
+const OwnerCalendar = lazyPage(() => import('@/pages/dashboard/OwnerCalendar'))
+const OwnerEarnings = lazyPage(() => import('@/pages/dashboard/OwnerEarnings'))
 
-const AdminAnalytics = lazy(() => import('@/pages/dashboard/AdminAnalytics'))
-const AdminCars = lazy(() => import('@/pages/dashboard/AdminCars'))
-const AdminUsers = lazy(() => import('@/pages/dashboard/AdminUsers'))
-const AdminBookings = lazy(() => import('@/pages/dashboard/AdminBookings'))
-const AdminPayments = lazy(() => import('@/pages/dashboard/AdminPayments'))
+const AdminAnalytics = lazyPage(() => import('@/pages/dashboard/AdminAnalytics'))
+const AdminCars = lazyPage(() => import('@/pages/dashboard/AdminCars'))
+const AdminUsers = lazyPage(() => import('@/pages/dashboard/AdminUsers'))
+const AdminBookings = lazyPage(() => import('@/pages/dashboard/AdminBookings'))
+const AdminPayments = lazyPage(() => import('@/pages/dashboard/AdminPayments'))
 
 const PageFallback = () => (
   <div className="grid min-h-[60svh] place-items-center">
@@ -65,6 +67,10 @@ export default function App() {
           <DataProvider>
             <FavoritesProvider>
               <BrowserRouter>
+                {/* Inside the router so it can re-key on the pathname, and
+                    outside Suspense so a chunk that fails twice surfaces here
+                    rather than hanging on the spinner forever. */}
+                <ErrorBoundary>
                 <Suspense fallback={<PageFallback />}>
                   <Routes>
                     {/* Auth screens use their own full-bleed shell. */}
@@ -128,6 +134,7 @@ export default function App() {
                     </Route>
                   </Routes>
                 </Suspense>
+                </ErrorBoundary>
               </BrowserRouter>
             </FavoritesProvider>
           </DataProvider>

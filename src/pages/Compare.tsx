@@ -84,19 +84,23 @@ export default function Compare() {
           No fixed min-width on the table. A hardcoded one is wrong for every
           car count except the one it was picked for — too small and the columns
           get crushed, too large and a single car floats in dead space. The
-          per-cell minimums below let the browser derive it: 11rem for labels
-          plus 13rem per car, whatever the count.
+          per-cell minimums below let the browser derive it from the actual
+          count instead.
+
+          Those minimums shrink on phones (7rem labels, 9rem per car rather than
+          11 and 13) so two cars are genuinely side by side on a 390px screen —
+          the point of the page. At desktop widths they go back to comfortable.
         */}
-        <table className="w-full border-separate border-spacing-0 text-sm">
+        <table className="w-full border-separate border-spacing-0 text-xs sm:text-sm">
           <caption className="sr-only">Specification comparison</caption>
           <thead>
             <tr>
               <th
                 scope="col"
-                className="surface sticky left-0 z-1 w-44 min-w-44 border-b p-3 text-left"
+                className="surface sticky left-0 z-1 w-28 min-w-28 border-b p-2 sm:w-44 sm:min-w-44 sm:p-3 text-left"
               />
               {selected.map((car) => (
-                <th key={car.id} scope="col" className="min-w-52 border-b p-3 align-top">
+                <th key={car.id} scope="col" className="min-w-36 border-b p-2 align-top sm:min-w-52 sm:p-3">
                   {/*
                     The width lives on the cell, not here. As a plain w-52 div
                     it did not contribute to the column's minimum width, so the
@@ -137,7 +141,7 @@ export default function Compare() {
               <tr key={row.label} className="even:surface-sunken">
                 <th
                   scope="row"
-                  className="surface even:surface-sunken sticky left-0 z-1 w-44 min-w-44 p-3 text-left font-medium text-dim"
+                  className="surface even:surface-sunken sticky left-0 z-1 w-28 min-w-28 p-2 sm:w-44 sm:min-w-44 sm:p-3 text-left font-medium text-dim"
                 >
                   {row.label}
                 </th>
@@ -148,12 +152,18 @@ export default function Compare() {
                       key={car.id}
                       className={
                         best
-                          ? 'text-brand-700 dark:text-brand-300 p-3 font-black'
-                          : 'p-3 font-semibold'
+                          ? 'text-brand-700 dark:text-brand-300 p-2 font-black sm:p-3'
+                          : 'p-2 font-semibold sm:p-3'
                       }
                     >
                       {row.get(car)}
-                      {best && <span className="ml-2 text-xs font-bold">Best price</span>}
+                      {/* Drops to its own line on a phone — beside a price in a
+                          9rem column it would force the whole table wider. */}
+                      {best && (
+                        <span className="block text-[0.65rem] font-bold sm:ml-2 sm:inline sm:text-xs">
+                          Best price
+                        </span>
+                      )}
                     </td>
                   )
                 })}
@@ -174,7 +184,7 @@ export default function Compare() {
               <tr key={key} className="even:surface-sunken">
                 <th
                   scope="row"
-                  className="surface even:surface-sunken text-dim sticky left-0 z-1 w-44 min-w-44 p-3 text-left font-medium"
+                  className="surface even:surface-sunken text-dim sticky left-0 z-1 w-28 min-w-28 p-2 sm:w-44 sm:min-w-44 sm:p-3 text-left font-medium"
                 >
                   {FEATURE_LABELS[key]}
                 </th>
@@ -194,7 +204,7 @@ export default function Compare() {
             ))}
 
             <tr>
-              <td className="surface sticky left-0 z-1 w-44 min-w-44 p-3" />
+              <td className="surface sticky left-0 z-1 w-28 min-w-28 p-2 sm:w-44 sm:min-w-44 sm:p-3" />
               {selected.map((car) => (
                 <td key={car.id} className="p-3">
                   <LinkButton to={`/cars/${car.id}`} size="sm" fullWidth>
