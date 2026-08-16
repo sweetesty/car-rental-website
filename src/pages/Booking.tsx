@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Building2,
   Check,
   CreditCard,
   Landmark,
@@ -50,7 +49,6 @@ export default function Booking() {
   const [startDate, setStartDate] = useState(passed?.startDate ?? addDays(todayISO(), 1))
   const [endDate, setEndDate] = useState(passed?.endDate ?? addDays(todayISO(), 4))
   const [pickupCity, setPickupCity] = useState(car?.city ?? CITIES[0])
-  const [channel, setChannel] = useState<(typeof CHANNELS)[number]['value']>('card')
   const [agreed, setAgreed] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -441,47 +439,39 @@ export default function Booking() {
                     Processed by Paystack. Your money is held until the handover is complete.
                   </p>
 
-                  <fieldset className="mt-6 space-y-3">
-                    <legend className="sr-only">Payment method</legend>
+                  {/*
+                    The method is chosen on Paystack's page, not here.
+
+                    This was a radio group, but `pay()` never read the
+                    selection — every option went to the same Paystack
+                    checkout. Choosing "bank transfer" then revealed a
+                    hardcoded account number, so a customer could send money to
+                    an account that was never ours, against a reference that
+                    was the car's number plate rather than their booking, and
+                    no booking would ever be marked paid. Listing what Paystack
+                    accepts is honest; offering a choice that did nothing, and
+                    an account nobody monitors, was not.
+                  */}
+                  <ul className="mt-6 space-y-3">
                     {CHANNELS.map((option) => (
-                      <label
+                      <li
                         key={option.value}
-                        className={cx(
-                          'flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-colors',
-                          channel === option.value
-                            ? 'border-brand-500 bg-brand-50 dark:bg-brand-950'
-                            : 'hover:border-brand-300',
-                        )}
+                        className="flex items-center gap-4 rounded-xl border p-4"
                       >
-                        <input
-                          type="radio"
-                          name="channel"
-                          checked={channel === option.value}
-                          onChange={() => setChannel(option.value)}
-                          className="accent-brand-600 dark:accent-brand-400 size-4"
-                        />
                         <option.icon className="text-brand-600 dark:text-brand-400 size-5 shrink-0" />
                         <span>
                           <span className="block text-sm font-bold">{option.label}</span>
                           <span className="text-dim block text-xs">{option.body}</span>
                         </span>
-                      </label>
+                      </li>
                     ))}
-                  </fieldset>
+                  </ul>
 
-                  {channel === 'bank-transfer' && (
-                    <div className="surface-sunken mt-4 rounded-lg border p-4 text-sm">
-                      <p className="flex items-center gap-2 font-bold">
-                        <Building2 className="size-4" />
-                        Transfer to
-                      </p>
-                      <p className="text-dim mt-2">
-                        AUTOGO Technologies Ltd · Wema Bank · 0123456789
-                        <br />
-                        Use reference <span className="font-semibold">{car.registrationNumber}</span>
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-dim mt-4 text-sm leading-relaxed">
+                    Continue to pay {money(priced.total)} on Paystack's secure page, where you pick
+                    the method that suits you. AUTOGO only ever collects payment through Paystack —
+                    never send money to a bank account someone gives you elsewhere.
+                  </p>
 
                   <p className="text-dim mt-6 flex items-center justify-center gap-2 text-xs">
                     <Lock className="size-3.5" />
