@@ -10,7 +10,16 @@ import { currentIdToken } from './firebase'
  */
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
-  timeout: 15_000,
+  /*
+   * Long enough to survive a cold start.
+   *
+   * Render's free tier sleeps after ~15 minutes idle and takes 30–50s to wake.
+   * At the old 15s the FIRST request after any quiet spell always timed out,
+   * so a visitor arriving at a sleeping API saw an empty fleet — reported as
+   * "0 cars match your search", which blames their filters for an
+   * infrastructure problem. Skeletons cover the wait; DataContext retries.
+   */
+  timeout: 60_000,
   headers: { 'Content-Type': 'application/json' },
 })
 

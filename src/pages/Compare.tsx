@@ -31,7 +31,7 @@ const ROWS: { label: string; get: (car: Car) => string }[] = [
   },
   { label: 'Fuel policy', get: (c) => FUEL_POLICY_LABELS[c.policy.fuelPolicy].split(' — ')[0] },
   { label: 'Min. rental', get: (c) => `${c.policy.minRentalDays} day(s)` },
-  { label: 'Free cancellation', get: (c) => `${c.policy.cancellationWindowHours} hrs before` },
+  { label: 'Cancellation', get: () => 'Non-refundable' },
   { label: 'Pickup', get: (c) => c.pickupLocation },
   { label: 'GPS tracker', get: (c) => (c.gpsTrackerId ? 'Fitted' : 'Not fitted') },
   { label: 'Insurance', get: (c) => c.insurance.provider },

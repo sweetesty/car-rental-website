@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CarFront, Search, SlidersHorizontal, X } from 'lucide-react'
+import { CarFront, Search, SlidersHorizontal, WifiOff, X } from 'lucide-react'
 import type { CarFilters as Filters } from '@/lib/types'
 import { CarCard, CarCardSkeleton } from '@/components/cars/CarCard'
 import { CarFilters } from '@/components/cars/CarFilters'
@@ -39,7 +39,7 @@ function fromParams(params: URLSearchParams): Filters {
 }
 
 export default function Cars() {
-  const { cars } = useData()
+  const { cars, loading, refresh } = useData()
   const [params, setParams] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => fromParams(params))
   const [search, setSearch] = useState(filters.q)
@@ -88,7 +88,13 @@ export default function Cars() {
       if (filters.fuelType && car.fuelType !== filters.fuelType) return false
       if (filters.city && car.city !== filters.city) return false
       if (filters.seats && car.seats < Number(filters.seats)) return false
-      if (car.pricePerDay > filters.maxPrice) return false
+      /*
+       * The slider's top position is labelled "₦200,000+", so it has to mean
+       * no upper limit. Compared literally it meant "≤ ₦200,000", which hid
+       * every car above that at every possible setting — the Porsche and the
+       * AMG GT R could not be reached from this page at all.
+       */
+      if (filters.maxPrice < PRICE_CEILING && car.pricePerDay > filters.maxPrice) return false
       if (filters.startDate && filters.endDate) {
         if (!isAvailable(car, filters.startDate, filters.endDate)) return false
       }
@@ -173,6 +179,23 @@ export default function Cars() {
                 <CarCardSkeleton key={i} />
               ))}
             </div>
+          ) : cars.length === 0 ? (
+            /*
+             * No fleet at all is not a filter problem, and saying "no cars
+             * match those filters" sends someone off widening a price range
+             * that was never the cause. It happens on a cold start, when the
+             * API is still waking and we have nothing yet.
+             */
+            <EmptyState
+              icon={WifiOff}
+              title="Can't load the cars right now"
+              message="We're having trouble reaching AUTOGO. Check your connection — we'll keep trying."
+              action={
+                <Button onClick={() => void refresh()} loading={loading}>
+                  Try again
+                </Button>
+              }
+            />
           ) : results.length === 0 ? (
             <EmptyState
               icon={CarFront}

@@ -401,9 +401,12 @@ export default function Booking() {
                   <div className="surface-sunken mt-6 rounded-lg border p-4 text-sm">
                     <p className="font-bold">Before you pay</p>
                     <ul className="text-dim mt-2 list-disc space-y-1 pl-5 leading-relaxed">
+                      {/* Stated before payment, not discovered after it. The
+                          car comes off the market for these dates the moment
+                          this is confirmed. */}
                       <li>
-                        Free cancellation up to {car.policy.cancellationWindowHours} hours before
-                        pickup.
+                        <span className="font-bold">Bookings are non-refundable.</span> Cancelling
+                        does not return the amount paid, so check your dates before you continue.
                       </li>
                       <li>
                         A refundable {money(car.policy.securityDeposit)} deposit is authorised at

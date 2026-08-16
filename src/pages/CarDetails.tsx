@@ -15,6 +15,7 @@ import {
   Settings2,
   ShieldCheck,
   Users,
+  WifiOff,
   X,
 } from 'lucide-react'
 import { CarGallery } from '@/components/cars/CarGallery'
@@ -32,7 +33,7 @@ import type { CarFeatureSet } from '@/lib/types'
 export default function CarDetails() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { getCar, reviewsFor, loadCar, loadReviews, loading } = useData()
+  const { getCar, reviewsFor, loadCar, loadReviews, loading, error, refresh } = useData()
   const { user } = useAuth()
   const { isFavorite, toggleFavorite, isComparing, toggleCompare } = useFavorites()
   const toast = useToast()
@@ -65,6 +66,30 @@ export default function CarDetails() {
         </div>
       )
     }
+    /*
+     * A missing car and an unreachable API look identical from here, and
+     * saying "removed by its owner" when we simply couldn't fetch it is a
+     * confident lie — the listing is very likely fine. When the fleet failed
+     * to load, say that instead and offer the retry, matching the banner
+     * already showing above.
+     */
+    if (error) {
+      return (
+        <div className="mx-auto max-w-3xl px-4 py-24">
+          <EmptyState
+            icon={WifiOff}
+            title="Can't load this car right now"
+            message="We're having trouble reaching AUTOGO. Check your connection — the listing is probably still there."
+            action={
+              <Button onClick={() => void refresh()} loading={loading}>
+                Try again
+              </Button>
+            }
+          />
+        </div>
+      )
+    }
+
     return (
       <div className="mx-auto max-w-3xl px-4 py-24">
         <EmptyState
@@ -227,7 +252,7 @@ export default function CarDetails() {
               <Policy title="Fuel policy" body={FUEL_POLICY_LABELS[car.policy.fuelPolicy]} />
               <Policy
                 title="Cancellation"
-                body={`Free cancellation up to ${car.policy.cancellationWindowHours} hours before pickup. After that, the first day is non-refundable.`}
+                body="Bookings are non-refundable. Once confirmed, the car is held off the market for your dates, so cancelling does not return what you paid."
               />
               <Policy
                 title="Security deposit"

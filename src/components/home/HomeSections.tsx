@@ -668,7 +668,7 @@ export function FinalCta() {
         </motion.div>
 
         <p className="mt-8 text-xs font-semibold tracking-[0.14em] text-white/50 uppercase">
-          Free cancellation on most cars · No card surcharges · Support 7am–11pm
+          Verified owners · No card surcharges · Support 7am–11pm
         </p>
       </div>
     </section>
