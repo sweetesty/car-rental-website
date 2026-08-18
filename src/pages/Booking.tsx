@@ -399,10 +399,6 @@ export default function Booking() {
                         does not return the amount paid, so check your dates before you continue.
                       </li>
                       <li>
-                        A refundable {money(car.policy.securityDeposit)} deposit is authorised at
-                        handover.
-                      </li>
-                      <li>
                         {car.policy.mileageLimitPerDay
                           ? `${car.policy.mileageLimitPerDay} km/day included; extra km at ₦120.`
                           : 'Unlimited mileage.'}
@@ -522,10 +518,6 @@ export default function Booking() {
                 </dl>
               )}
 
-              <p className="text-dim mt-4 text-xs">
-                Refundable deposit of {money(car.policy.securityDeposit)} is authorised separately
-                at handover.
-              </p>
             </div>
           </Card>
         </aside>

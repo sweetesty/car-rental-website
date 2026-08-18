@@ -14,7 +14,6 @@ const ROWS: { label: string; get: (car: Car) => string }[] = [
   { label: 'Price / day', get: (c) => money(c.pricePerDay) },
   { label: 'Price / week', get: (c) => money(c.pricePerWeek) },
   { label: 'Price / month', get: (c) => money(c.pricePerMonth) },
-  { label: 'Security deposit', get: (c) => money(c.policy.securityDeposit) },
   { label: 'Body type', get: (c) => titleCase(c.bodyType) },
   { label: 'Year', get: (c) => `${c.year}` },
   { label: 'Seats', get: (c) => `${c.seats}` },

@@ -264,8 +264,8 @@ const TERMS = [
     body: 'On self-drive hires the customer is responsible for fuelling the vehicle throughout the rental period.',
   },
   {
-    heading: '10. Self-drive: security deposit',
-    body: 'A refundable security deposit is required before the vehicle is collected. The amount depends on the vehicle type and value. It is returned after the vehicle has been inspected and found in good condition.',
+    heading: '10. Self-drive: condition on return',
+    body: 'The vehicle is inspected with you at handover and again on return. You are responsible for damage, traffic fines and fuel shortfalls incurred during the rental, which are settled directly with the owner.',
   },
   {
     heading: '11. Self-drive: responsibility and liability',

@@ -552,7 +552,7 @@ const FAQS = [
   },
   {
     q: 'What do I need before I can rent?',
-    a: 'A licence held for at least two years, and you must meet the minimum driver age on the listing (most cars: 23). A refundable security deposit is authorised at handover and released within three working days of a clean return.',
+    a: 'A licence held for at least two years, and you must meet the minimum driver age on the listing (most cars: 23). Bring the licence and a government ID to the handover — the owner checks both before releasing the car.',
   },
   {
     q: 'When am I actually charged?',

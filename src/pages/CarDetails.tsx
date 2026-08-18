@@ -255,10 +255,6 @@ export default function CarDetails() {
                 body="Bookings are non-refundable. Once confirmed, the car is held off the market for your dates, so cancelling does not return what you paid."
               />
               <Policy
-                title="Security deposit"
-                body={`${money(car.policy.securityDeposit)}, refunded within 3 working days of a clean return.`}
-              />
-              <Policy
                 title="Driver requirements"
                 body={`Minimum age ${car.policy.driverAgeMin}, with a valid licence held for at least 2 years.`}
               />

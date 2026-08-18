@@ -175,8 +175,8 @@ export default function BecomeAHost() {
           <ShieldCheck className="text-brand-600 dark:text-brand-400 size-6" />
           <h3 className="mt-4 font-bold tracking-tight">Protected on every trip</h3>
           <p className="text-dim mt-2 text-sm leading-relaxed">
-            Renters pass KYC and licence checks. Comprehensive cover and a security deposit sit
-            behind every booking.
+            Renters pass KYC and licence checks, and comprehensive cover sits behind every
+            booking.
           </p>
         </Card>
         <Card className="p-6">

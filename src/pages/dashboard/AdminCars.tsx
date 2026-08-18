@@ -388,8 +388,7 @@ export default function AdminCars() {
 
               <p className="text-dim mt-3 border-t pt-3 text-xs">
                 Only change these if the price is unrealistic for the market — the owner sets
-                their own rates and can change them back. Security deposit{' '}
-                {money(inspecting.policy.securityDeposit)} · minimum{' '}
+                their own rates and can change them back. Minimum{' '}
                 {inspecting.policy.minRentalDays} day
                 {inspecting.policy.minRentalDays > 1 ? 's' : ''} ·{' '}
                 {inspecting.policy.mileageLimitPerDay

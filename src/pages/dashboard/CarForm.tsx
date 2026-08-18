@@ -593,14 +593,6 @@ export default function CarForm() {
             />
             <Input
               type="number"
-              label="Security deposit (₦)"
-              min={0}
-              step={5000}
-              value={form.securityDeposit}
-              onChange={set('securityDeposit')}
-            />
-            <Input
-              type="number"
               label="Minimum driver age"
               min={18}
               max={40}
