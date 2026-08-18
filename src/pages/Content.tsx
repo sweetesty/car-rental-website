@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Card, SectionHeading } from '@/components/ui/Misc'
 import { LinkButton } from '@/components/ui/Button'
-import { supportLink } from '@/lib/whatsapp'
+import { SUPPORT_DISPLAY, SUPPORT_TEL, supportLink } from '@/lib/whatsapp'
 
 const Page = ({
   title,
@@ -126,11 +126,11 @@ export function TrustAndSafety() {
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <LinkButton to="/support">Contact support</LinkButton>
           <a
-            href="tel:+2348000000000"
+            href={SUPPORT_TEL}
             className="surface-raised inline-flex h-11 items-center gap-2 rounded-lg border px-5 text-sm font-semibold"
           >
             <Phone className="size-4" />
-            +234 800 000 0000
+            {SUPPORT_DISPLAY}
           </a>
         </div>
       </section>
@@ -145,8 +145,8 @@ const CHANNELS = [
     icon: Phone,
     title: 'Call us',
     body: '7am–11pm, seven days a week',
-    action: '0707 833 4999',
-    href: 'tel:+2347078334999',
+    action: SUPPORT_DISPLAY,
+    href: SUPPORT_TEL,
   },
   {
     icon: Mail,

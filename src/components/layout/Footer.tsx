@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
 import { Logo } from './Logo'
 import { useToast } from '@/lib/hooks'
+import { SUPPORT_DISPLAY, SUPPORT_TEL } from '@/lib/whatsapp'
 
 /* Brand marks are hand-rolled — lucide dropped third-party logos in v1. */
 const XMark = ({ className }: { className?: string }) => (
@@ -115,8 +116,8 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="size-4 shrink-0" />
-                <a href="tel:+2347078334999" className="hover:text-brand-600">
-                  0707 833 4999
+                <a href={SUPPORT_TEL} className="hover:text-brand-600">
+                  {SUPPORT_DISPLAY}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">

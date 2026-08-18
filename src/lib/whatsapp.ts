@@ -55,6 +55,35 @@ export function waLink(phone: string | undefined | null, message?: string) {
 export const supportLink = (message?: string) =>
   `https://wa.me/${SUPPORT_NUMBER}${message ? `?text=${encodeURIComponent(message)}` : ''}`
 
+/*
+ * The number people call is the same one they message.
+ *
+ * Three different numbers used to be hardcoded across the footer, the support
+ * page and a contact block — one of them the +234 800 000 0000 placeholder —
+ * while WhatsApp used VITE_WHATSAPP_SUPPORT. Changing the line meant finding
+ * every copy, and missing one sent customers to a number nobody answers. All
+ * of them now derive from the same env var.
+ */
+
+/** `tel:` href for the support line, in E.164. */
+export const SUPPORT_TEL = `tel:+${SUPPORT_NUMBER}`
+
+/**
+ * The support line as a Nigerian number is written locally: 234 803 123 4567
+ * reads back as 0803 123 4567. Falls back to a grouped international form for
+ * anything that isn't a +234 mobile.
+ */
+export const SUPPORT_DISPLAY = (() => {
+  const digits = SUPPORT_NUMBER.replace(/\D/g, '')
+
+  if (digits.startsWith('234') && digits.length === 13) {
+    const local = `0${digits.slice(3)}`
+    return `${local.slice(0, 4)} ${local.slice(4, 7)} ${local.slice(7)}`
+  }
+
+  return `+${digits}`
+})()
+
 /* ── Prefilled message templates ────────────────────────────────── */
 
 /**
